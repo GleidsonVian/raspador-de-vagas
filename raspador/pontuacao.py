@@ -51,6 +51,11 @@ def _segmentos(desc: str) -> dict[str, str]:
     return {k: "\n".join(v) for k, v in out.items()}
 
 
+def segmentar(desc: str) -> dict[str, str]:
+    """{'req': ..., 'dif': ..., 'ign': ...} com o texto normalizado de cada secao (usado pelas estatisticas)."""
+    return _segmentos(desc)
+
+
 def pontuar(cfg: dict, titulo: str, desc: str) -> int | None:
     """None = bloqueada; 0 = sem sinal de RPA; >0 = relevante (compare com pontuacao_minima)."""
     t = norm(titulo)
@@ -92,10 +97,16 @@ def explicar(cfg: dict, titulo: str, desc: str) -> dict:
         if p > 0:
             outras.append(k)
             b += 2 * p
-    cobertura = a / (a + b) if (a + b) else 0.0
+    # suavizacao: com pouca evidencia (poucas tecnologias citadas) a cobertura nao pode ir a 100%.
+    # "prior" = pontos de evidencia que a vaga precisa ter para a cobertura ser confiavel.
+    prior = cfg.get("cobertura_prior", 0)
+    cobertura = a / (a + b + prior) if (a + b + prior) else 0.0
 
     foco = ("rpa", "uipath", "n8n", "selenium", "power automate", "automation anywhere", "blue prism")
-    if any(tem(k, t) for k in foco) or "automa" in t:
+    # "automacao" generica no titulo so conta como foco se a descricao (requisitos/diferenciais) mostrar sinal de
+    # RPA/automacao tecnica; senao e tratada como titulo comum (ex.: "Consultor Zendesk CX e Automacao")
+    sinal = any(tem(k, seg[m]) for m in ("req", "dif") if seg[m] for k in cfg["termos_nucleo"])
+    if any(tem(k, t) for k in foco) or ("automa" in t and sinal):
         tit, tit_txt = 1.0, "foco"
     elif any(tem(k, t) for k in ("python", "selenium", "scraping", "integracao", "integracoes")):
         tit, tit_txt = 0.5, "parcial"
@@ -143,11 +154,13 @@ def extrair_metadados(titulo: str, desc: str, tipo_raw: str = "") -> dict:
 
     # 1. Contrato
     contrato = ""
-    tipo_l = tipo_raw.lower() if tipo_raw else ""
-    if "legal_entity" in tipo_l:
+    tipo_l = (tipo_raw or "").lower().strip()
+    if "legal_entity" in tipo_l or tipo_l == "pj":
         contrato = "PJ"
-    elif "effective" in tipo_l:
+    elif "effective" in tipo_l or tipo_l == "clt":
         contrato = "CLT"
+    elif tipo_l in ("clt / pj", "clt/pj", "pj / clt"):
+        contrato = "CLT / PJ"
     elif "associate" in tipo_l or "cooperad" in tipo_l:
         contrato = "Cooperado"
     elif "internship" in tipo_l or "estag" in tipo_l:

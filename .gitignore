@@ -9,6 +9,9 @@ perfil_edge/
 *.db-wal
 *.db-shm
 
+# copias diarias do banco (dados pessoais)
+backups/
+
 # log e relatorios gerados
 log.txt
 novas_*.html

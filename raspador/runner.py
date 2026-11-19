@@ -8,7 +8,7 @@ import time
 from collections import deque
 from datetime import datetime
 
-from . import banco, config, dedup, trava
+from . import backup, banco, config, dedup, trava
 from .fontes import FONTES, Bloqueio
 from .pontuacao import explicar, pontuar, extrair_metadados
 from .trava import JaRodando
@@ -45,6 +45,14 @@ def _avaliar(cfg: dict, v: dict) -> bool:
     return sc is not None and sc >= cfg["pontuacao_minima"]
 
 
+def _registrar(con, chaves: dict, v: dict) -> None:
+    """Grava a vaga e guarda a chave (empresa, titulo) para nao baixar duplicadas de outras fontes."""
+    banco.inserir(con, v)
+    k = dedup.chave_vaga(v["titulo"], v["empresa"])
+    if dedup._valida(k):
+        chaves.setdefault(k, v["id"])
+
+
 def _alertas(lista, lidas, vazias, desc_tot, desc_vazias, avisos) -> str | None:
     """Sinais de que o site mudou de layout ou bloqueou em silencio."""
     a = list(avisos)
@@ -66,12 +74,14 @@ def executar(fontes: list[str] | None = None, termos: list[str] | None = None, d
 
 
 def _executar(fontes, termos, dias, manter_aberto) -> list[dict]:
+    backup.garantir_backup_diario(_log)  # antes de gravar qualquer coisa
     cfg = config.carregar()
     fontes = fontes or [n for n, c in cfg["fontes"].items() if c.get("ativa", True)]
     dias = dias if dias is not None else cfg["apenas_ultimos_dias"]
     cfg["apenas_ultimos_dias"] = dias
     con = banco.conectar()
     relevantes: list[dict] = []
+    chaves = dedup.carregar_chaves(con)
     PARAR.clear()
     ESTADO.update(rodando=True, fonte=None, termo=None, feito=0, novas=0, relevantes=0,
                   inicio=banco.agora(), fim=None, total=sum(len(termos or termos_da_fonte(cfg, f)) for f in fontes))
@@ -123,19 +133,26 @@ def _executar(fontes, termos, dias, manter_aberto) -> list[dict]:
                             v["fonte"], v["termo"] = nome, termo
                             if banco.ja_conhecida(con, v["id"]):
                                 continue
+                            k = dedup.chave_vaga(v["titulo"], v["empresa"])
+                            if dedup._valida(k) and k in chaves:
+                                # a mesma vaga ja existe (outra fonte ou republicada): nao gasta requisicao
+                                v.update(descricao="", score=0, match=0, motivo="", duplicada_de=chaves[k])
+                                _registrar(con, chaves, v)
+                                novas += 1
+                                continue
                             decisao = fonte.vale_descricao(v) if hasattr(fonte, "vale_descricao") else "sim"
                             if decisao == "depois":
                                 continue  # limite da execucao: fica para a proxima (nao registra)
                             if decisao == "nao":
                                 v.update(descricao="", score=0, match=0, motivo="")  # titulo irrelevante: registra e segue
-                                banco.inserir(con, v)
+                                _registrar(con, chaves, v)
                                 novas += 1
                                 continue
                             v["descricao"] = fonte.descricao(v)
                             desc_tot += 1
                             desc_vazias += 0 if v["descricao"] else 1
                             ok = _avaliar(cfg, v)
-                            banco.inserir(con, v)
+                            _registrar(con, chaves, v)
                             novas += 1
                             if ok:
                                 rel += 1
@@ -170,8 +187,8 @@ def _executar(fontes, termos, dias, manter_aberto) -> list[dict]:
         ESTADO.update(rodando=False, fim=banco.agora(), fonte=None, termo=None)
         try:
             dedup.atualizar_duplicadas(con)
-        except Exception:
-            pass
+        except Exception as e:
+            _log(f"aviso: deduplicacao falhou ({e})")
         con.close()
     return relevantes
 
@@ -221,19 +238,20 @@ def reavaliar() -> int:
     """Recalcula score, % de match e motivo de TODAS as vagas salvas com as regras atuais do config.json.
     Nao mexe em status nem em exclusoes."""
     cfg = config.carregar()
+    backup.garantir_backup_diario(_log)
     con = banco.conectar()
     try:
-        linhas = con.execute("SELECT id,titulo,descricao FROM vagas").fetchall()
+        linhas = con.execute("SELECT id,titulo,descricao,tipo_raw,contrato FROM vagas").fetchall()
         for r in linhas:
-            v = {"titulo": r["titulo"], "descricao": r["descricao"] or ""}
+            v = {"titulo": r["titulo"], "descricao": r["descricao"] or "", "tipo_raw": r["tipo_raw"] or ""}
             _avaliar(cfg, v)
             con.execute("UPDATE vagas SET score=?, match=?, motivo=?, contrato=?, salario=? WHERE id=?",
-                        (v["score"], v["match"], v["motivo"], v["contrato"], v["salario"], r["id"]))
+                        (v["score"], v["match"], v["motivo"], v["contrato"] or (r["contrato"] or ""), v["salario"], r["id"]))
         con.commit()
         try:
             dedup.atualizar_duplicadas(con)
-        except Exception:
-            pass
+        except Exception as e:
+            _log(f"aviso: deduplicacao falhou ({e})")
         return len(linhas)
     finally:
         con.close()

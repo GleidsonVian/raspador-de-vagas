@@ -1,10 +1,11 @@
-"""LinkedIn: SOMENTE a busca pública de vagas (sem login).
+"""LinkedIn: SOMENTE a busca publica de vagas (sem login).
 
-Regras de segurança (o LinkedIn proíbe automação e suspende contas):
-  - nunca usa a sua conta/cookies; só os endpoints públicos "jobs-guest";
-  - volume baixo: poucos termos, 1 página, pausas humanas longas, descrição só de títulos relevantes (máximo por execução);
-  - headers realistas de Chrome moderno para evitar fingerprint de bot;
-  - se responder 429/999 ou pedir login, faz 1 tentativa com backoff e, se persistir, entra em PAUSA temporária.
+Regras de seguranca (o LinkedIn proibe automacao e suspende contas):
+  - nunca usa a sua conta/cookies; so os endpoints publicos "jobs-guest";
+  - volume baixo: poucos termos, 1 pagina, pausas longas, descricao so de titulos relevantes (maximo por execucao);
+  - 429/999 ou pedido de login = PARAR na hora (sem retry): a fonte entra em pausa com backoff
+    (3h, 6h, 12h, 24h). Insistir logo depois de um 429 so prolonga o bloqueio;
+  - cabecalhos simples (nao copiamos client hints/Sec-Fetch de navegador: nao ha ganho real e nao e honesto).
 """
 import random
 import re
@@ -22,16 +23,8 @@ GEO_BRASIL = "106057199"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-    "Sec-Ch-Ua-Mobile": "?0",
-    "Sec-Ch-Ua-Platform": '"Windows"',
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "same-origin",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
 }
 
 
@@ -61,24 +54,10 @@ class LinkedIn:
     def _get(self, url, referer: str = "https://www.linkedin.com/jobs/search", **kw):
         from . import Bloqueio
 
-        # Primeira tentativa
-        try:
-            r = self.s.get(url, timeout=30, headers={"referer": referer}, **kw)
-        except Exception as e:
-            time.sleep(random.uniform(5, 10))
-            r = self.s.get(url, timeout=30, headers={"referer": referer}, **kw)
-
-        # Se vier 429 ou 999, tenta esperar um pouco e retentar uma vez com jitter
-        if r.status_code in (429, 999):
-            espera = random.uniform(12, 20)
-            self.log(f"[LinkedIn] Rate-limit (HTTP {r.status_code}). Aguardando {espera:.1f}s antes de retentar...")
-            time.sleep(espera)
-            r = self.s.get(url, timeout=30, headers={"referer": referer}, **kw)
-
+        r = self.s.get(url, timeout=30, headers={"referer": referer}, **kw)
         if r.status_code in (429, 999) or "authwall" in r.url or "/login" in r.url:
             ra = r.headers.get("Retry-After", "")
             raise Bloqueio(f"LinkedIn limitou o acesso (HTTP {r.status_code})", int(ra) if ra.isdigit() else None)
-
         r.raise_for_status()
         return r.text
 
@@ -102,6 +81,8 @@ class LinkedIn:
                     self.avisos.append("página do LinkedIn sem cards reconhecidos (layout mudou?)")
                 break
 
+            if not any(self._card(c) for c in cards):
+                self.avisos.append("cards do LinkedIn nao puderam ser lidos (layout mudou?)")
             for c in cards:
                 v = self._card(c)
                 if v and v["id"] not in vistos:

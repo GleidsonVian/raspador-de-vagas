@@ -271,21 +271,21 @@
     },
     "programathor": {
       "ativa": true,
-      "max_paginas": 2,
       "pausa_busca_seg": [
-        1.5,
-        3.0
+        5.0,
+        10.0
       ],
       "pausa_descricao_seg": [
-        1.0,
-        2.0
+        4.0,
+        8.0
       ],
+      "max_descricoes_por_execucao": 5,
       "termos": [
-        "rpa",
+        "selenium",
+        "n8n",
         "python",
-        "automacao",
-        "scraping",
-        "selenium"
+        "robotframework",
+        "autoit"
       ]
     }
   },
@@ -310,5 +310,16 @@
     "kubernetes": 5,
     "terraform": 5
   },
-  "lacunas_max_penalidade": 30
+  "lacunas_max_penalidade": 30,
+  "verificador": {
+    "fontes": [
+      "gupy",
+      "programathor"
+    ],
+    "limite": 30
+  },
+  "cobertura_prior": 3,
+  "backup": {
+    "manter": 7
+  }
 }

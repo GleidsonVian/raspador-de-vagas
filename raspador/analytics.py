@@ -3,6 +3,8 @@ import re
 from collections import Counter
 from typing import Any, Dict, List
 
+from . import config
+
 
 TECH_MAP = [
     ("Python", r"\bpython\b"),
@@ -26,6 +28,72 @@ TECH_MAP = [
 ]
 
 
+# varias grafias contam como UMA tecnologia (uma vaga que cita "GCP" e "Google Cloud" conta uma vez)
+GRUPOS = {
+    "GCP / Google Cloud": ("gcp", "google cloud"),
+    "Azure": ("azure", "azure devops"),
+    "C# / .NET": ("c#", ".net", "dotnet"),
+    "Power Platform": ("power platform", "power apps", "dataverse", "pl-500", "pl-400", "pl-200"),
+    "REST / APIs": ("rest", "apis rest", "api rest"),
+    "PostgreSQL": ("postgres", "postgresql"),
+    "Webhooks": ("webhook", "webhooks"),
+    "Node.js": ("node", "nodejs"),
+}
+
+
+_ROTULOS = {"uipath": "UiPath", "git": "Git", "javascript": "JavaScript", "typescript": "TypeScript", "n8n": "n8n",
+            "pyautogui": "PyAutoGUI", "fastapi": "FastAPI", "mysql": "MySQL", "sqlite": "SQLite", "ocr": "OCR"}
+
+
+def _rotulo(termo: str) -> str:
+    if termo in _ROTULOS:
+        return _ROTULOS[termo]
+    return termo.upper() if len(termo) <= 3 else termo.title()
+
+
+def _agrupar(termos) -> dict:
+    """{rotulo: {termos}} juntando sinonimos."""
+    inv = {t: rot for rot, ts in GRUPOS.items() for t in ts}
+    out: dict = {}
+    for t in termos:
+        out.setdefault(inv.get(t) or _rotulo(t), set()).add(t)
+    return out
+
+
+def _mercado(linhas, cfg: dict) -> dict:
+    """O que as vagas relevantes pedem: (a) tecnologias que voce AINDA NAO tem e (b) seus pontos fortes mais pedidos.
+    Conta por vaga, separando 'obrigatorio' (requisitos/responsabilidades) de 'diferencial'; o que esta em
+    beneficios/sobre a empresa nao conta (mesma regra do match)."""
+    from .pontuacao import segmentar
+    from .texto import norm, tem
+
+    perfil = {norm(k) for k in cfg["meu_perfil"]}
+    descontadas = {norm(k) for k in list(cfg.get("lacunas", {})) + list(cfg.get("ferramentas_fracas", []))}
+    fora = ({norm(k) for k in cfg["tecnologias_outras"]} | descontadas) - perfil
+    grupos_fora, grupos_perfil = _agrupar(sorted(fora)), _agrupar(sorted(perfil))
+    contagem = {rot: [0, 0] for rot in list(grupos_fora) + list(grupos_perfil)}
+    todos = {**grupos_fora, **grupos_perfil}
+
+    for r in linhas:
+        seg = segmentar(r["descricao"] or "")
+        for rot, termos in todos.items():
+            if seg["req"] and any(tem(t, seg["req"]) for t in termos):
+                contagem[rot][0] += 1
+            elif seg["dif"] and any(tem(t, seg["dif"]) for t in termos):
+                contagem[rot][1] += 1
+
+    total = len(linhas)
+
+    def montar(grupos, limite):
+        itens = [{"tech": rot, "vagas": o + d, "obrigatorio": o, "diferencial": d,
+                  "pct": round(100 * (o + d) / total, 1), "penalizada": bool(termos & descontadas)}
+                 for rot, termos in grupos.items() for o, d in [contagem[rot]] if o + d]
+        itens.sort(key=lambda i: (-i["vagas"], -i["obrigatorio"], i["tech"]))
+        return itens[:limite]
+
+    return {"lacunas_mercado": montar(grupos_fora, 10), "pontos_fortes": montar(grupos_perfil, 8)}
+
+
 def _parse_salario_medio(s: str) -> float | None:
     if not s:
         return None
@@ -47,14 +115,17 @@ def _parse_salario_medio(s: str) -> float | None:
     return sum(valid_nums) / len(valid_nums)
 
 
-def obter_analytics(con) -> Dict[str, Any]:
-    """Calcula estatísticas de mercado consolidadas sobre as vagas."""
+def obter_analytics(con, minimo: int = 10, cfg: dict | None = None) -> Dict[str, Any]:
+    """Estatisticas de mercado sobre as vagas RELEVANTES (score >= minimo), abertas e nao duplicadas.
+    Antes entravam todas as lidas, e ~96% eram irrelevantes: os numeros nao significavam nada."""
     linhas = con.execute(
         """
         SELECT id, titulo, empresa, salario, contrato, descricao, fonte, match
         FROM vagas
-        WHERE excluida = 0
-        """
+        WHERE excluida = 0 AND (encerrada IS NULL OR encerrada = 0)
+          AND (duplicada_de IS NULL OR duplicada_de = '') AND score >= ?
+        """,
+        (minimo,),
     ).fetchall()
 
     total = len(linhas)
@@ -75,6 +146,8 @@ def obter_analytics(con) -> Dict[str, Any]:
                 "max": 0,
             },
             "fontes": [],
+            "lacunas_mercado": [],
+            "pontos_fortes": [],
         }
 
     tech_counter: Counter[str] = Counter()
@@ -173,7 +246,7 @@ def obter_analytics(con) -> Dict[str, Any]:
     for f_nome, f_count in fontes_counter.most_common():
         matches = fontes_matches.get(f_nome, [])
         media_m = round(sum(matches) / len(matches), 1) if matches else 0
-        relevantes = sum(1 for m in matches if m >= 10)
+        relevantes = sum(1 for m in matches if m >= 60)  # vagas com match forte
         lista_fontes.append({
             "fonte": f_nome,
             "total": f_count,
@@ -200,4 +273,5 @@ def obter_analytics(con) -> Dict[str, Any]:
         "top_empresas": top_empresas,
         "salarios": stats_salarios,
         "fontes": lista_fontes,
+        **_mercado(linhas, cfg or config.carregar()),
     }

@@ -5,6 +5,7 @@
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-2EAD33.svg?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-Local_Storage-003B57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Status](https://img.shields.io/badge/Status-Ativo-success.svg)](#)
+[![Testes](https://github.com/GleidsonVian/raspador-de-vagas/actions/workflows/tests.yml/badge.svg)](https://github.com/GleidsonVian/raspador-de-vagas/actions/workflows/tests.yml)
 
 Sistema autônomo de busca, filtragem e curadoria de vagas **100% remotas** em múltiplas plataformas de emprego (**Glassdoor, LinkedIn, Gupy e Programathor**). 
 
@@ -47,9 +48,9 @@ Ajuste facilmente termos de busca específicos para cada plataforma, idade máxi
   - **Glassdoor**: Coleta via CDP conectando-se ao Microsoft Edge já instalado.
   - **LinkedIn**: Coleta pública sem necessidade de login ou credenciais.
   - **Gupy Portal**: Integração direta com a API REST pública (`portal.gupy.io`), ultra veloz.
-  - **Programathor**: Extração de oportunidades tech/remotas com headers atualizados.
+  - **Programathor**: vagas remotas por **tecnologia** (`/jobs-python`, `/jobs-selenium`...). O site não tem busca por texto, então os termos desta fonte são nomes de tecnologia. Lê o contrato (PJ/CLT) do texto visível do card; o site não informa a data da vaga.
 - 🛡️ **Resiliência Anti-Bloqueio (HTTP 429)**:
-  - Delays humanizados com jitter aleatório e emulação de navegadores modernos (Chrome 131 Client Hints).
+  - Pausas longas e aleatórias entre as requisições, limite de descrições por execução e **parada imediata no primeiro HTTP 429** (sem retry e sem imitar cabeçalhos de navegador: insistir logo depois de um 429 só prolonga o bloqueio).
   - Pausa inteligente com **backoff exponencial** (3h, 6h, 12h, 24h) e botão **"Retomar agora"** no painel quando a restrição expirar.
 - 💰 **Extração Automática de Metadados**:
   - Identificação precisa de modelo de contratação: **PJ**, **CLT**, **CLT / PJ** ou **Cooperado**.
@@ -58,13 +59,21 @@ Ajuste facilmente termos de busca específicos para cada plataforma, idade máxi
   - Detecta quando a mesma empresa publica a mesma vaga em portais diferentes (ex: Gupy vs LinkedIn vs Glassdoor).
   - Oculta duplicatas por padrão na interface, com opção de habilitar o checkbox **"ver duplicadas"**.
 - 👻 **Detector de Vagas Expiradas (Ghost Job Detector)**:
-  - Botão **"🔍 Checar vagas ativas"** que testa os links das vagas em background e marca automaticamente como `Encerrada` aquelas que retornarem HTTP 404 ou avisos de processo finalizado.
+  - Botão **"🔍 Checar vagas ativas"**: verifica poucas vagas por vez (as checadas há mais tempo primeiro) e marca como `Encerrada` as que retornarem 404/410 ou trouxerem "vaga encerrada" no **título** da página.
+  - Só consulta fontes estáveis e públicas (Gupy e Programathor, configurável em `verificador.fontes`), espera entre as requisições, pula fontes em pausa e para no primeiro 429. Glassdoor e LinkedIn ficam de fora de propósito.
 - 🎯 **Algoritmo de Match Contextual (NLP Leve)**:
   - Divide a descrição em seções: *Requisitos* pesam 100%, *Diferenciais* pesam 30%, e *Benefícios/Sobre a Empresa* não contam.
   - Calcula cobertura de habilidades, penaliza lacunas e ajusta pontuação conforme a senioridade no título.
+  - **Pouca evidência não vira 100%**: a cobertura é suavizada (`cobertura_prior` no `config.json`) e um título que só diz "automação" só conta como foco se a descrição mostrar sinal de RPA/automação técnica (rpa, uipath, n8n, selenium...). Sem isso, vira um título comum.
+- 📊 **Lacunas do Mercado** (aba *Estatísticas*):
+  - Mostra as tecnologias que as vagas relevantes pedem e que **você ainda não tem** (um guia do que estudar), com a contagem de vagas em que são *obrigatórias* e em que são só *diferencial*, e quais já descontam do seu match.
+  - Mostra também os seus pontos fortes mais pedidos. Grafias equivalentes (GCP / Google Cloud, .NET / C#) contam como uma tecnologia só.
+- 💾 **Backup Automático do Banco**:
+  - Uma cópia por dia em `backups/` (ao abrir o painel e antes de cada busca ou "Reavaliar"), guardando as 7 mais recentes (`backup.manter` no `config.json`).
+  - Usa a API de backup do SQLite (consistente mesmo com uma busca gravando) e confere a cópia (integridade e contagem de vagas) antes de guardá-la. Botão **"Fazer backup agora"** em *Configurações*. Para restaurar, feche o painel e copie o arquivo por cima de `vagas.db`.
 - 🔒 **Segurança Local & Trava Entre Processos**:
   - Painel isolado estritamente em `127.0.0.1` com proteção contra DNS Rebinding e CSRF.
-  - Trava nativa do Windows (Named Mutex) impedindo que o painel, terminal ou agendador colidam entre si.
+  - Trava entre processos (arquivo `raspador.lock` + checagem de processo vivo no Windows) impedindo que o painel, o terminal ou o agendador colidam entre si.
 
 ---
 
@@ -146,6 +155,9 @@ raspador-de-vagas/
 ├── requirements.txt         # Dependências Python
 ├── iniciar_painel.bat       # Atalho para inicialização rápida do painel
 ├── executar_busca.bat       # Script para agendamento diário
+├── .github/workflows/       # CI: roda os testes a cada push (tests.yml)
+├── tests/                   # Testes de regressão offline (unittest)
+├── backups/                 # (gerada) cópias diárias do vagas.db; fora do git
 ├── docs/                    # Screenshots e capturas de tela da documentação
 │   ├── painel_vagas.png
 │   ├── painel_descricao.png
@@ -160,7 +172,8 @@ raspador-de-vagas/
     ├── verificador.py       # Ghost Job Detector (checagem de status HTTP)
     ├── analytics.py         # Agregação de estatísticas de mercado e tendências
     ├── banco.py             # Conexão e migrações do SQLite (vagas.db)
-    ├── trava.py             # Trava de sincronismo entre processos (Windows Mutex)
+    ├── backup.py            # Backup diário com conferência e rodízio
+    ├── trava.py             # Trava entre processos (arquivo raspador.lock + checagem de processo vivo no Windows)
     ├── fontes/              # Módulos independentes de scraping
     │   ├── glassdoor.py
     │   ├── linkedin.py
@@ -169,6 +182,20 @@ raspador-de-vagas/
     └── web/
         └── index.html       # Interface Single Page Application (HTML/CSS/JS)
 ```
+
+---
+
+## ✅ Testes
+
+Testes de regressão offline (sem acessar nenhum site; usam banco temporário):
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Cobrem o verificador de vagas (frase no rodapé não conta, respeita pausa e 429), a deduplicação, a extração de contrato, o `reavaliar`, o cálculo de match com pouca evidência, as estatísticas e as lacunas do mercado, o backup (cópia válida, rodízio, nunca na pasta de outro banco), o LinkedIn/Programathor (429 sem retry) e a ausência de `onclick` inline com dados de terceiros na tela.
+
+**Integração contínua:** o workflow `.github/workflows/tests.yml` roda a mesma suíte a cada push na `main` e em pull requests, em Windows, com Python 3.10 e 3.13. Os testes não acessam sites nem dependem do seu `vagas.db`.
 
 ---
 

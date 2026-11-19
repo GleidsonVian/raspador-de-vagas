@@ -16,6 +16,8 @@ COLUNAS_VAGAS = {
     "salario": "TEXT DEFAULT ''",
     "duplicada_de": "TEXT DEFAULT ''",
     "encerrada": "INTEGER DEFAULT 0",
+    "tipo_raw": "TEXT DEFAULT ''",         # tipo de contrato como veio da fonte (ex.: vacancy_type_legal_entity, PJ)
+    "verificada_em": "TEXT",               # ultima checagem de vaga encerrada (rodizio do verificador)
 }
 COLUNAS_EXEC = {"alerta": "TEXT", "desc_vazias": "INTEGER DEFAULT 0"}
 
@@ -78,6 +80,12 @@ def retomar(con, fonte: str) -> None:
     con.commit()
 
 
+def encerrar_pausa(con, fonte: str) -> None:
+    """Encerra a pausa agora, MAS mantem o contador de falhas: se o site bloquear de novo, o backoff continua subindo."""
+    con.execute("UPDATE pausas SET ate=? WHERE fonte=?", ("2000-01-01T00:00:00", fonte))
+    con.commit()
+
+
 def ja_conhecida(con, vid: str) -> bool:
     """Inclui as excluidas: assim excluir uma vaga nao a faz voltar na proxima busca."""
     return con.execute("SELECT 1 FROM vagas WHERE id=?", (vid,)).fetchone() is not None
@@ -85,9 +93,9 @@ def ja_conhecida(con, vid: str) -> bool:
 
 def inserir(con, v: dict) -> None:
     con.execute(
-        "INSERT INTO vagas(id,fonte,titulo,empresa,nota,idade_dias,local,easy,link,termo,score,descricao,visto_em,match,motivo,status,excluida,contrato,salario)"
-        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'nova',0,?,?)",
+        "INSERT INTO vagas(id,fonte,titulo,empresa,nota,idade_dias,local,easy,link,termo,score,descricao,visto_em,match,motivo,status,excluida,contrato,salario,tipo_raw,duplicada_de)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'nova',0,?,?,?,?)",
         (v["id"], v["fonte"], v["titulo"], v["empresa"], v.get("nota"), v.get("idade_dias"), v.get("local", ""),
          int(bool(v.get("easy"))), v.get("link", ""), v.get("termo", ""), v["score"], v.get("descricao", ""),
-         agora(), v["match"], v.get("motivo", ""), v.get("contrato", ""), v.get("salario", "")))
+         agora(), v["match"], v.get("motivo", ""), v.get("contrato", ""), v.get("salario", ""), v.get("tipo_raw", ""), v.get("duplicada_de", "")))
     con.commit()

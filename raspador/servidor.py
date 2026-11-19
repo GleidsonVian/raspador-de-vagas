@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from . import analytics, banco, config, dedup, runner, verificador
+from . import analytics, backup, banco, config, dedup, runner, trava, verificador
 from .fontes import FONTES
 
 PORTA = int(os.environ.get("RASPADOR_PORTA", 8765))
@@ -169,16 +169,20 @@ def resumo():
 def dados_analytics():
     con = banco.conectar()
     try:
-        return analytics.obter_analytics(con)
+        cfg = config.carregar()
+        return analytics.obter_analytics(con, cfg["pontuacao_minima"], cfg)
     finally:
         con.close()
 
 
 @app.post("/api/pausa/{fonte}/limpar")
 def limpar_pausa(fonte: str):
+    """Encerra a pausa agora. O contador de falhas e mantido: se bloquear de novo, a proxima pausa e mais longa."""
+    if fonte not in FONTES:
+        raise HTTPException(404, "fonte desconhecida")
     con = banco.conectar()
     try:
-        banco.retomar(con, fonte)
+        banco.encerrar_pausa(con, fonte)
     finally:
         con.close()
     return {"ok": True}
@@ -221,6 +225,24 @@ def saude():
     return out
 
 
+@app.get("/api/backups")
+def listar_backups():
+    return {"pasta": "backups/", "manter": config.carregar().get("backup", {}).get("manter", backup.MANTER_PADRAO),
+            "arquivos": backup.listar()}
+
+
+@app.post("/api/backups")
+def novo_backup():
+    """Backup manual (alem do diario). Seguro durante uma busca: usa a API de backup do SQLite."""
+    try:
+        p = backup.fazer_backup(forcar=True)
+    except Exception as e:
+        raise HTTPException(500, f"backup falhou: {e}")
+    if not p:
+        raise HTTPException(404, "banco de vagas ainda nao existe")
+    return {"arquivo": p.name, "arquivos": backup.listar()}
+
+
 @app.get("/api/estado")
 def estado():
     e = dict(runner.ESTADO)
@@ -249,7 +271,7 @@ def reavaliar():
 
 @app.post("/api/vagas/verificar-ativas")
 def verificar_ativas():
-    if runner.ESTADO["rodando"]:
+    if runner.ESTADO["rodando"] or trava.ocupado():
         raise HTTPException(409, "aguarde a execucao terminar")
     con = banco.conectar()
     try:
@@ -311,7 +333,7 @@ def ler_config():
     return {"termos_busca": c["termos_busca"],
             "termos_linkedin": c["fontes"]["linkedin"].get("termos", []),
             "termos_gupy": c["fontes"].get("gupy", {}).get("termos") or ["rpa", "desenvolvedor rpa", "analista de automacao", "automacao python", "n8n", "uipath"],
-            "termos_programathor": c["fontes"].get("programathor", {}).get("termos") or ["rpa", "python", "automacao", "scraping", "selenium"],
+            "termos_programathor": c["fontes"].get("programathor", {}).get("termos") or ["selenium", "n8n", "python", "robotframework", "autoit"],
             "pontuacao_minima": c["pontuacao_minima"], "apenas_ultimos_dias": c["apenas_ultimos_dias"],
             "glassdoor_ativa": c["fontes"]["glassdoor"].get("ativa", True),
             "linkedin_ativa": c["fontes"]["linkedin"].get("ativa", True),
@@ -341,6 +363,7 @@ def salvar_config(corpo: ConfigIn):
 
 
 def main(abrir: bool = True):
+    backup.garantir_backup_diario()  # copia do dia ANTES da migracao
     banco.conectar().close()  # garante a migracao antes de servir
     if abrir:
         threading.Timer(1.2, lambda: webbrowser.open(f"http://127.0.0.1:{PORTA}")).start()

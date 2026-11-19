@@ -118,6 +118,10 @@ dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
 .company-item{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-radius:7px;background:color-mix(in srgb,var(--txt) 3%,transparent);font-size:13px;transition:background .15s ease}
 .company-item:hover{background:color-mix(in srgb,var(--pri) 12%,transparent);cursor:pointer}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--txt);color:var(--bg);padding:8px 14px;border-radius:8px;display:none;z-index:20}
+.stat-nota{margin:-4px 0 10px;color:var(--mut);font-size:12px}
+.bar-sub{display:block;margin:-3px 0 9px;color:var(--mut);font-size:11px}
+.backups{margin-top:22px;padding-top:14px;border-top:1px solid var(--bd)}
+.backups h3{margin:0 0 4px;font-size:14px}.backups p{margin:0 0 8px;color:var(--mut);font-size:12px}
 </style>
 </head>
 <body>
@@ -187,7 +191,7 @@ dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
       <div><h3>Termos de busca (Glassdoor)</h3><p>Um por linha, em ordem de prioridade.</p><textarea id="cTermos"></textarea></div>
       <div><h3>Termos de busca (LinkedIn)</h3><p>Poucos termos: o LinkedIn limita acessos. Um por linha.</p><textarea id="cTermosLi"></textarea></div>
       <div><h3>Termos de busca (Gupy)</h3><p>Termos buscados na API da Gupy. Um por linha.</p><textarea id="cTermosGp"></textarea></div>
-      <div><h3>Termos de busca (Programathor)</h3><p>Termos de vagas tech remotas. Um por linha.</p><textarea id="cTermosProg"></textarea></div>
+      <div><h3>Termos de busca (Programathor)</h3><p>Nomes de <b>tecnologia</b> (python, selenium, n8n, robotframework…): o site filtra por tecnologia, não por texto. Um por linha.</p><textarea id="cTermosProg"></textarea></div>
     </div>
     <div class="linha">
       <label>Só vagas dos últimos <input id="cDias" type="number" min="1" max="90" style="width:70px"> dias</label>
@@ -200,11 +204,27 @@ dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
       <button id="reav" title="Recalcula o match de todas as vagas salvas com as regras atuais">Reavaliar vagas salvas</button>
     </div>
     <p style="color:var(--mut);font-size:12px">As regras de pontuação (suas habilidades, ferramentas com menos prioridade, bloqueios) ficam em <code>config.json</code> (depois de editar, use "Reavaliar vagas salvas").</p>
+    <div class="backups">
+      <h3>💾 Backups do banco</h3>
+      <p>Uma cópia por dia (e uma ao abrir o painel ou antes de cada busca), guardando as últimas <span id="bkManter">7</span> na pasta <code>backups/</code>. Para restaurar, feche o painel e copie o arquivo desejado por cima de <code>vagas.db</code>.</p>
+      <button id="btnBackup">Fazer backup agora</button>
+      <div id="bkLista" style="margin-top:10px"></div>
+    </div>
   </section>
 
   <section id="aba-stats" hidden>
     <div class="kpi-row" id="statsKpis"></div>
     <div class="stats-grid">
+      <div class="stat-card">
+        <h3>🎯 O que o mercado pede e você ainda não tem</h3>
+        <p class="stat-nota">Tecnologias citadas nas vagas relevantes que não estão no seu perfil. Um guia do que estudar.</p>
+        <div id="statLacunas"></div>
+      </div>
+      <div class="stat-card">
+        <h3>💪 Seus pontos fortes mais pedidos</h3>
+        <p class="stat-nota">Habilidades suas que mais aparecem nas vagas relevantes.</p>
+        <div id="statFortes"></div>
+      </div>
       <div class="stat-card">
         <h3>🚀 Top Tecnologias Mais Demandadas</h3>
         <div id="statTechs"></div>
@@ -373,7 +393,8 @@ $("#btnChecarAtivas").onclick = async () => {
   btn.textContent = "Verificando...";
   try {
     const res = await api("/api/vagas/verificar-ativas", "POST");
-    toast(`Verificação concluída: ${res.verificadas} verificadas, ${res.encerradas} encerradas.`);
+    const pul = Object.entries(res.puladas || {}).map(([k, m]) => `${fontes[k] || k} (${m})`);
+    toast(`Verificação: ${res.verificadas} verificadas, ${res.encerradas} encerradas.` + (pul.length ? ` Puladas: ${pul.join("; ")}.` : ""));
     recarrega();
   } catch(e) {
     toast(e.message);
@@ -452,7 +473,7 @@ async function carregaSaude(){
       if(f.estado==="pausa"){
         const bt=el("button","mini","Retomar agora");
         bt.style.marginLeft="10px";
-        bt.onclick=async()=>{await api(`/api/pausa/${k}/limpar`,"POST");toast(`Pausa de ${f.rotulo} removida`);carregaSaude()};
+        bt.onclick=async()=>{if(!confirm(`Encerrar a pausa do ${f.rotulo} agora? O site pode bloquear de novo, e a próxima pausa será mais longa.`))return;await api(`/api/pausa/${k}/limpar`,"POST");toast(`Pausa de ${f.rotulo} removida`);carregaSaude()};
         dv.append(" ",bt);
       }
       $("#avisos").append(dv);
@@ -466,11 +487,24 @@ async function carregaStats(){
     const sal = data.salarios;
     const fmtMoeda = val => val ? "R$ " + Math.round(val).toLocaleString("pt-BR") : "—";
     $("#statsKpis").innerHTML = `
-      <div class="kpi"><b>${data.total_vagas}</b><span>Total de Vagas Analisadas</span></div>
+      <div class="kpi"><b>${data.total_vagas}</b><span>Vagas relevantes analisadas</span></div>
       <div class="kpi"><b>${fmtMoeda(sal.media_pj)}</b><span>Média Estimada PJ</span></div>
       <div class="kpi"><b>${fmtMoeda(sal.media_clt)}</b><span>Média Estimada CLT</span></div>
       <div class="kpi"><b>${sal.pct_com_salario}%</b><span>Com Salário Divulgado (${sal.com_salario} vagas)</span></div>
     `;
+
+    const barras = (id, itens, cor, vazio) => {
+      const max = Math.max(...itens.map(i=>i.vagas), 1);
+      $(id).innerHTML = itens.map(i=>`
+        <div class="bar-row">
+          <span class="bar-label" title="${esc(i.tech)}">${esc(i.tech)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round((i.vagas/max)*100)}%;background:${cor}"></div></div>
+          <span class="bar-val">${i.vagas} (${i.pct}%)</span>
+        </div>
+        <small class="bar-sub">${i.obrigatorio} obrigatório · ${i.diferencial} diferencial${i.penalizada?" · já descontada no match":""}</small>`).join("") || `<div class="vazio">${vazio}</div>`;
+    };
+    barras("#statLacunas", data.lacunas_mercado||[], "var(--bad)", "Nenhuma lacuna encontrada nas vagas atuais.");
+    barras("#statFortes", data.pontos_fortes||[], "var(--ok)", "Sem dados ainda.");
 
     const maxTech = Math.max(...data.top_tecnologias.map(t=>t.count), 1);
     $("#statTechs").innerHTML = data.top_tecnologias.map(t=>`
@@ -513,15 +547,18 @@ async function carregaStats(){
     `).join("");
 
     $("#statEmpresas").innerHTML = data.top_empresas.map((e, idx)=>`
-      <div class="company-item" onclick="$('[data-aba=vagas]').click();$('#fQ').value='${esc(e.empresa)}';carregaVagas();" title="Clique para filtrar vagas desta empresa">
+      <div class="company-item" data-empresa="${esc(e.empresa)}" title="Clique para filtrar vagas desta empresa">
         <span><b>#${idx+1}</b> ${esc(e.empresa)}</span>
         <span class="tag sim">${e.count} vaga(s)</span>
       </div>
     `).join("") || '<div class="vazio">Sem dados de empresas suficientes.</div>';
+    // sem onclick inline: o nome da empresa vem de terceiros e nunca pode virar codigo
+    $("#statEmpresas").querySelectorAll(".company-item").forEach(el=>el.addEventListener("click",()=>{
+      $("[data-aba=vagas]").click();$("#fQ").value=el.dataset.empresa;carregaVagas();}));
 
     $("#statFontes").innerHTML = `
       <table>
-        <thead><tr><th>Fonte</th><th>Total de Vagas</th><th>Média de Match</th><th>Vagas Relevantes</th></tr></thead>
+        <thead><tr><th>Fonte</th><th>Vagas relevantes</th><th>Média de Match</th><th>Match ≥ 60%</th></tr></thead>
         <tbody>` + data.fontes.map(f=>`
           <tr class="f-${esc(f.fonte)}">
             <td><span class="fonte">${esc(fontes[f.fonte]||f.fonte)}</span></td>
@@ -551,7 +588,7 @@ async function carregaExecs(){
 async function carregaCfg(){
   const c=await api("/api/config");
   $("#cTermos").value=c.termos_busca.join("\n");$("#cTermosLi").value=c.termos_linkedin.join("\n");$("#cTermosGp").value=(c.termos_gupy||[]).join("\n");$("#cTermosProg").value=(c.termos_programathor||[]).join("\n");
-  $("#cDias").value=c.apenas_ultimos_dias;$("#cMin").value=c.pontuacao_minima;$("#cGd").checked=c.glassdoor_ativa;$("#cLi").checked=c.linkedin_ativa;$("#cGp").checked=c.gupy_ativa;$("#cProg").checked=c.programathor_ativa;
+  $("#cDias").value=c.apenas_ultimos_dias;$("#cMin").value=c.pontuacao_minima;$("#cGd").checked=c.glassdoor_ativa;$("#cLi").checked=c.linkedin_ativa;$("#cGp").checked=c.gupy_ativa;$("#cProg").checked=c.programathor_ativa;carregaBackups();
 }
 $("#salvarCfg").onclick=async()=>{
   try{await api("/api/config","PUT",{termos_busca:$("#cTermos").value.split("\n"),termos_linkedin:$("#cTermosLi").value.split("\n"),termos_gupy:$("#cTermosGp").value.split("\n"),termos_programathor:$("#cTermosProg").value.split("\n"),
@@ -559,6 +596,15 @@ $("#salvarCfg").onclick=async()=>{
     toast("Configurações salvas");carregaCfg()}catch(e){toast(e.message)}
 };
 
+async function carregaBackups(){
+  try{
+    const b=await api("/api/backups");$("#bkManter").textContent=b.manter;
+    $("#bkLista").innerHTML=b.arquivos.length
+      ?`<table><thead><tr><th>Arquivo</th><th>Criado em</th><th>Tamanho</th></tr></thead><tbody>`+b.arquivos.map(a=>`<tr><td>${esc(a.arquivo)}</td><td>${fmtData(a.criado_em)}</td><td>${(a.bytes/1048576).toFixed(2)} MB</td></tr>`).join("")+"</tbody></table>"
+      :'<div class="vazio">Nenhum backup ainda.</div>';
+  }catch(e){}
+}
+$("#btnBackup").onclick=async()=>{const b=$("#btnBackup");b.disabled=true;try{const r=await api("/api/backups","POST");toast("Backup criado: "+r.arquivo);carregaBackups()}catch(e){toast(e.message)}finally{b.disabled=false}};
 $("#reav").onclick=async()=>{try{const r=await api("/api/reavaliar","POST");toast(r.vagas+" vagas reavaliadas");recarrega()}catch(e){toast(e.message)}};
 
 /* execucao: rodar / parar / acompanhar */
