@@ -122,6 +122,13 @@ dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
 .bar-sub{display:block;margin:-3px 0 9px;color:var(--mut);font-size:11px}
 .backups{margin-top:22px;padding-top:14px;border-top:1px solid var(--bd)}
 .backups h3{margin:0 0 4px;font-size:14px}.backups p{margin:0 0 8px;color:var(--mut);font-size:12px}
+tr.check td{background:var(--bg)}
+.checklist{white-space:normal}.checklist h4{margin:0 0 8px;font-size:14px}
+.checklist .lin{margin:4px 0;color:var(--mut);font-size:13px}
+.checklist .grupo{margin:10px 0}.checklist .gt{font-weight:650;font-size:13px;margin-bottom:4px}
+.checklist .item{margin:3px 0}.checklist .destaque{margin-left:8px;color:var(--txt);font-size:13px}
+.checklist button{margin-top:8px}
+.checklist a{color:var(--pri)}
 </style>
 </head>
 <body>
@@ -339,7 +346,7 @@ async function carregaVagas(){
       <td class="hide-m"><span class="tag ${x.easy?"sim":""}">${x.easy?"Sim":"Não"}</span></td>
       <td class="hide-m">${fmtData(x.capturada_em)}</td>
       <td><select class="st">${st}</select></td>
-      <td class="acoes"><button class="mini ver">Descrição</button>${x.excluida?'<button class="mini rest">Restaurar</button>':'<button class="mini perigo exc">Excluir</button>'}</td></tr>`}).join("")+"</tbody></table>";
+      <td class="acoes"><button class="mini chk" title="O que você tem, o que falta e o que destacar">Checklist</button><button class="mini ver">Descrição</button>${x.excluida?'<button class="mini rest">Restaurar</button>':'<button class="mini perigo exc">Excluir</button>'}</td></tr>`}).join("")+"</tbody></table>";
 }
 $("#tabela").addEventListener("change",async e=>{
   if(!e.target.classList.contains("st"))return;
@@ -368,12 +375,19 @@ $("#tabela").addEventListener("change",async e=>{
 $("#tabela").addEventListener("click",async e=>{
   const tr=e.target.closest("tr.vaga");if(!tr)return;const id=tr.dataset.id;
   if(e.target.classList.contains("ver")){
-    const prox=tr.nextElementSibling;
-    if(prox&&prox.classList.contains("desc")){prox.remove();return}
+    const aberta=linhaAberta(tr,"desc");
+    if(aberta){aberta.remove();return}
     try{const d=await api(`/api/vagas/${encodeURIComponent(id)}/descricao`);
       const n=document.createElement("tr");n.className="desc";const td=document.createElement("td");td.colSpan=7;
       if(d.motivo)td.append(montaMotivo(d.motivo,tr.querySelector(".badge").textContent));
       td.append(montaDescricaoColorida(d.descricao, d.motivo));
+      n.append(td);tr.after(n)}catch(err){toast(err.message)}
+  }else if(e.target.classList.contains("chk")){
+    const aberta=linhaAberta(tr,"check");
+    if(aberta){aberta.remove();return}
+    try{const c=await api(`/api/vagas/${encodeURIComponent(id)}/checklist`);
+      const n=document.createElement("tr");n.className="check";const td=document.createElement("td");td.colSpan=7;
+      td.append(montaChecklist(c,tr.querySelector("td.titulo a").textContent,(tr.querySelector("td.titulo small")||{}).textContent||"",tr.querySelector(".badge").textContent));
       n.append(td);tr.after(n)}catch(err){toast(err.message)}
   }else if(e.target.classList.contains("exc")){
     idExcluir=id;$("#dlgTitulo").textContent=tr.querySelector("td.titulo a").textContent;$("#dlgExcluir").showModal();
@@ -420,6 +434,58 @@ const recarrega=()=>{carregaResumo();carregaVagas();carregaSaude()};
 
 /* por que esse match? (montado com textContent: titulos/descricoes vem de terceiros) */
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function linhaAberta(tr,cls){let n=tr.nextElementSibling;while(n&&!n.classList.contains("vaga")){if(n.classList.contains(cls))return n;n=n.nextElementSibling}return null}
+function textoChecklist(c,titulo,empresa,match){
+  const L=[`${titulo} — ${empresa}`,`Match: ${match}`,`Nível: ${c.nivel.texto}`];
+  if(c.tem_descricao){
+    const r=c.resumo;
+    L.push(`Requisitos técnicos obrigatórios cobertos: ${r.cobertas} de ${r.obrigatorias_total}`);
+    const lista=(arr,onde)=>arr.filter(i=>i.onde===onde).map(i=>i.tech).join(", ")||"—";
+    L.push("","Você tem (obrigatório): "+lista(c.voce_tem,"obrigatorio"),"Falta (obrigatório): "+lista(c.falta,"obrigatorio"),
+           "Você tem (diferencial): "+lista(c.voce_tem,"diferencial"),"Falta (diferencial): "+lista(c.falta,"diferencial"));
+    const d=c.voce_tem.filter(i=>i.destaque);
+    if(d.length){L.push("","Destacar na candidatura:");d.forEach(i=>L.push(`- ${i.tech}: ${i.destaque}`))}
+  }
+  const f=c.info;
+  L.push("",`Contrato: ${f.contrato||"não informado"} | Salário: ${f.salario||"não informado"} | Candidatura rápida: ${f.candidatura_rapida?"sim":"não"}`);
+  if(f.link)L.push(f.link);
+  return L.join("\n");
+}
+/* checklist: montado so com textContent (titulos/descricoes vem de terceiros) */
+function montaChecklist(c,titulo,empresa,match){
+  const box=el("div","checklist");box.append(el("h4",null,"📋 Checklist da candidatura"));
+  const nv=el("div","lin","Nível: ");
+  nv.append(el("span","mchip "+({compativel:"skill",acima:"lac",abaixo:"aj",nao_informado:"dif"}[c.nivel.avaliacao]||"dif"),c.nivel.texto));box.append(nv);
+  if(!c.tem_descricao){
+    box.append(el("div","lin","Esta vaga foi registrada sem descrição (título irrelevante ou duplicada), então não há o que cruzar com o seu perfil."));
+  }else{
+    const r=c.resumo;
+    box.append(el("div","lin",`Requisitos técnicos obrigatórios cobertos: ${r.cobertas} de ${r.obrigatorias_total}`+(r.obrigatorias_total?` (${r.pct}%)`:"")));
+    const grupo=(tit,itens,cls,extra)=>{
+      if(!itens.length)return;
+      const g=el("div","grupo");g.append(el("div","gt",tit));
+      itens.forEach(i=>{
+        const l=el("div","item");l.append(el("span","mchip "+cls,i.tech+(extra?extra(i):"")));
+        if(i.destaque)l.append(el("span","destaque",i.destaque));
+        g.append(l)});
+      box.append(g)};
+    const t=c.voce_tem,f_=c.falta;
+    grupo("✅ Você tem e a vaga exige",t.filter(i=>i.onde==="obrigatorio"),"skill");
+    grupo("⚠️ Falta (exigido)",f_.filter(i=>i.onde==="obrigatorio"),"lac",i=>i.descontada?" · já descontada no match":"");
+    grupo("👍 Diferenciais que você tem",t.filter(i=>i.onde==="diferencial"),"skill dif");
+    grupo("➖ Diferenciais que faltam",f_.filter(i=>i.onde==="diferencial"),"lac dif");
+    if(![...t,...f_].length)box.append(el("div","lin","Nenhuma tecnologia conhecida foi encontrada nos requisitos."));
+  }
+  const i=c.info,g=el("div","grupo");g.append(el("div","gt","📌 Antes de candidatar"));
+  const linha=txt=>g.append(el("div","lin",txt));
+  linha(`Contrato: ${i.contrato||"não informado"} · Salário: ${i.salario||"não informado"} · Candidatura rápida: ${i.candidatura_rapida?"sim":"não"}`);
+  linha(`Local: ${i.local||"—"} · Idade da vaga: ${i.idade_dias==null?"não informada":i.idade_dias+" dia(s)"}`);
+  if(/^https?:\/\//.test(i.link||"")){const a=el("a",null,"Abrir a vaga");a.href=i.link;a.target="_blank";a.rel="noopener noreferrer";const d=el("div","lin");d.append(a);g.append(d)}
+  box.append(g);
+  const bt=el("button","mini","Copiar resumo");
+  bt.onclick=async()=>{try{await navigator.clipboard.writeText(textoChecklist(c,titulo,empresa,match));toast("Resumo copiado")}catch{toast("Não foi possível copiar")}};
+  box.append(bt);return box}
+
 function montaDescricaoColorida(desc, motivo){
   if(!desc) return el("div", null, "(sem descrição coletada)");
   let h = esc(desc);

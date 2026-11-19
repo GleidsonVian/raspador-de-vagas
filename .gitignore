@@ -3,6 +3,9 @@
 # perfil do Edge do raspador (cookies e login do Glassdoor)
 perfil_edge/
 
+# destaques pessoais do curriculo, usados no checklist (use perfil_local.example.json como modelo)
+perfil_local.json
+
 # banco de vagas coletadas
 *.db
 *.db-journal

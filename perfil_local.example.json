@@ -1,0 +1,9 @@
+{
+  "_comentario": "Copie para perfil_local.json (ignorado pelo git) e escreva UMA frase sua por habilidade: projeto, resultado, numero. As chaves sao os nomes das habilidades do meu_perfil do config.json. O checklist mostra a frase quando a vaga pede a habilidade.",
+  "destaques": {
+    "python": "Ex.: automacoes em Python em producao; ferramenta open source X com N usuarios.",
+    "selenium": "Ex.: Selenium Grid em producao com retentativa automatica e limpeza de sessoes.",
+    "rpa": "Ex.: robos RPA para portais bancarios; reduzi o retrabalho em X%.",
+    "n8n": "Ex.: fluxos n8n integrando Bitrix24 e APIs REST."
+  }
+}

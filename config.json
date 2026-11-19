@@ -321,5 +321,6 @@
   "cobertura_prior": 3,
   "backup": {
     "manter": 7
-  }
+  },
+  "meu_nivel": "pleno"
 }

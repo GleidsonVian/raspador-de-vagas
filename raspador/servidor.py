@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from . import analytics, backup, banco, config, dedup, runner, trava, verificador
+from . import analytics, backup, banco, checklist, config, dedup, runner, trava, verificador
 from .fontes import FONTES
 
 PORTA = int(os.environ.get("RASPADOR_PORTA", 8765))
@@ -92,6 +92,20 @@ def descricao(vid: str):
     except ValueError:
         motivo = None
     return {"descricao": r["descricao"] or "", "motivo": motivo}
+
+
+@app.get("/api/vagas/{vid:path}/checklist")
+def checklist_da_vaga(vid: str):
+    """O que voce tem, o que falta e o que destacar para esta vaga (sem IA; ver raspador/checklist.py)."""
+    con = banco.conectar()
+    try:
+        r = con.execute("SELECT titulo,empresa,fonte,descricao,contrato,salario,easy,link,idade_dias,local "
+                        "FROM vagas WHERE id=?", (vid,)).fetchone()
+    finally:
+        con.close()
+    if not r:
+        raise HTTPException(404, "vaga nao encontrada")
+    return checklist.montar(config.carregar(), dict(r))
 
 
 class StatusIn(BaseModel):

@@ -65,6 +65,10 @@ Ajuste facilmente termos de busca específicos para cada plataforma, idade máxi
   - Divide a descrição em seções: *Requisitos* pesam 100%, *Diferenciais* pesam 30%, e *Benefícios/Sobre a Empresa* não contam.
   - Calcula cobertura de habilidades, penaliza lacunas e ajusta pontuação conforme a senioridade no título.
   - **Pouca evidência não vira 100%**: a cobertura é suavizada (`cobertura_prior` no `config.json`) e um título que só diz "automação" só conta como foco se a descrição mostrar sinal de RPA/automação técnica (rpa, uipath, n8n, selenium...). Sem isso, vira um título comum.
+- 📋 **Checklist por vaga** (botão *Checklist* em cada vaga), sem IA:
+  - Cruza a vaga com o seu perfil e mostra o que você **tem e ela exige**, o que **falta** (separando *obrigatório* de *diferencial*; o que está em benefícios não conta), quantos requisitos técnicos você cobre e se o **nível** do título é compatível com o seu (`meu_nivel` no `config.json`).
+  - Reúne o que conferir antes de candidatar (contrato, salário, candidatura rápida, idade, link) e tem o botão **"Copiar resumo"**.
+  - **Destaques do currículo:** para cada habilidade que a vaga pede, mostra uma frase sua (projeto, resultado). Elas ficam em `perfil_local.json`, **local e ignorado pelo git**; use `perfil_local.example.json` como modelo.
 - 📊 **Lacunas do Mercado** (aba *Estatísticas*):
   - Mostra as tecnologias que as vagas relevantes pedem e que **você ainda não tem** (um guia do que estudar), com a contagem de vagas em que são *obrigatórias* e em que são só *diferencial*, e quais já descontam do seu match.
   - Mostra também os seus pontos fortes mais pedidos. Grafias equivalentes (GCP / Google Cloud, .NET / C#) contam como uma tecnologia só.
@@ -155,6 +159,7 @@ raspador-de-vagas/
 ├── requirements.txt         # Dependências Python
 ├── iniciar_painel.bat       # Atalho para inicialização rápida do painel
 ├── executar_busca.bat       # Script para agendamento diário
+├── perfil_local.example.json # Modelo dos destaques do checklist (copie para perfil_local.json, que fica fora do git)
 ├── .github/workflows/       # CI: roda os testes a cada push (tests.yml)
 ├── tests/                   # Testes de regressão offline (unittest)
 ├── backups/                 # (gerada) cópias diárias do vagas.db; fora do git
@@ -173,6 +178,8 @@ raspador-de-vagas/
     ├── analytics.py         # Agregação de estatísticas de mercado e tendências
     ├── banco.py             # Conexão e migrações do SQLite (vagas.db)
     ├── backup.py            # Backup diário com conferência e rodízio
+    ├── checklist.py         # Checklist por vaga (o que tem, o que falta, o que destacar)
+    ├── tecnologias.py       # Nomes e agrupamento de sinônimos (GCP / Google Cloud...)
     ├── trava.py             # Trava entre processos (arquivo raspador.lock + checagem de processo vivo no Windows)
     ├── fontes/              # Módulos independentes de scraping
     │   ├── glassdoor.py
