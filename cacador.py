@@ -18,7 +18,7 @@ from raspador.trava import JaRodando
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--fonte", action="append", help="glassdoor | linkedin (repetivel)")
+    ap.add_argument("--fonte", action="append", help="glassdoor | linkedin | gupy | programathor (repetivel)")
     ap.add_argument("--termo", action="append")
     ap.add_argument("--dias", type=int)
     ap.add_argument("--manter-aberto", action="store_true")

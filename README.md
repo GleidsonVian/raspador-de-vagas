@@ -1,130 +1,177 @@
-# Raspador de vagas
+# 🤖 Raspador de Vagas RPA & Tech
 
-Coleta vagas **remotas** de RPA/automação em mais de um site, calcula **quanto cada vaga combina com o seu perfil** e mostra tudo num **painel web local**. Feito para quem procura vaga de desenvolvedor RPA (Python, Selenium, n8n), mas as regras de pontuação ficam num `config.json` e dá para adaptar a outro perfil.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Playwright](https://img.shields.io/badge/Playwright-Automation-2EAD33.svg?logo=playwright&logoColor=white)](https://playwright.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-Local_Storage-003B57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Status](https://img.shields.io/badge/Status-Ativo-success.svg)](#)
 
-![Painel do raspador de vagas](docs/painel.png)
+Sistema autônomo de busca, filtragem e curadoria de vagas **100% remotas** em múltiplas plataformas de emprego (**Glassdoor, LinkedIn, Gupy e Programathor**). 
 
-## O que faz
+O raspador calcula a **aderência exata (% de Match)** de cada oportunidade ao seu perfil técnico (pesos por tecnologias, penalidades por lacunas e leitura contextual por seções), identifica salários e tipo de contratação (PJ/CLT), detecta vagas duplicadas e expiradas, e centraliza tudo em um **painel web local interativo e em tempo real**.
 
-- **Várias fontes** (Glassdoor e LinkedIn hoje), cada uma como um módulo independente.
-- **% de aderência por vaga**, com explicação ("Por que 58%?"): habilidades suas que a vaga pede, lacunas (o que você não tem) e ajustes de nível.
-- **Lê a descrição por seções**: o que está em *Requisitos/Responsabilidades* pesa 100%, o que está em *Diferenciais/Desejável* pesa 30% e *Benefícios/Sobre a empresa* não conta.
-- **Painel local**: filtros, status por vaga (nova, interessado, candidatado, descartado), descrição completa, data de captura, execução manual com progresso ao vivo, histórico de execuções e edição dos termos de busca.
-- **Excluir sem a vaga voltar**: "Ocultar" mantém o ID no banco, então a vaga não é coletada de novo. "Apagar definitivamente" remove do banco (se o site ainda listar a vaga, ela pode reaparecer).
-- **Execução agendada** pelo Agendador de Tarefas do Windows, só com vagas novas.
-- **Saúde das fontes**: avisa quando um site parece ter mudado o layout (buscas vazias, descrições vazias) e coloca a fonte em **pausa com backoff** (3h, 6h, 12h, 24h) quando o site bloqueia o acesso (HTTP 429).
-- **Trava entre processos**: painel, tarefa agendada e terminal não rodam ao mesmo tempo.
+---
 
-## Requisitos
+## 📸 Demonstração Visual das Telas
 
-- **Windows** (usa o Microsoft Edge instalado e APIs do Windows para a trava de processos).
+### 1. Painel de Vagas & Abas de Candidatura
+Centralize o funil das suas candidaturas. Mude o status da vaga (*Nova*, *Interessado*, *Candidatado*, *Descartado*) e ela se move suavemente para a respectiva aba, sumindo da sua visão imediata para manter o foco no que importa.
+![Painel de Vagas](docs/painel_vagas.png)
+
+### 2. Leitura Inteligente com Destaque Colorido na Descrição
+Abra a descrição completa com 1 clique e veja de imediato:
+- 🟩 **Suas habilidades** encontradas no texto (marcadas em verde sutil).
+- 🟥 **Lacunas e requisitos faltantes** que você não tem (fundo vermelho com sublinhado ondulado).
+- 🟨 **Seções-chave** (*Requisitos, Qualificações, Diferenciais, Atividades*) destacadas em amarelo.
+- 🎯 **Card explicativo:** detalha exatamente o porquê da pontuação final da vaga.
+![Destaque na Descrição](docs/painel_descricao.png)
+
+### 3. Analytics & Tendências de Mercado
+Tenha uma visão estratégica do mercado de RPA e tecnologia a partir das centenas de vagas mineradas no seu banco de dados:
+- **Top 12 Tecnologias Mais Demandadas**: frequência de menção (Python, SQL, UiPath, APIs, IA/GenAI, etc.).
+- **Médias Salariais Estimadas**: comparativo real de valores médios para CLT e PJ.
+- **Distribuição de Contratos e Senioridades**: proporção de vagas para Júnior, Pleno e Sênior.
+- **Top Empresas Contratantes**: ranking com atalho clicável para filtrar as vagas da empresa.
+- **Desempenho por Plataforma**: volume total, taxa de match médio e vagas relevantes por fonte.
+![Painel de Estatísticas](docs/painel_estatisticas.png)
+
+### 4. Configurações & Gestão Multi-Fonte
+Ajuste facilmente termos de busca específicos para cada plataforma, idade máxima das vagas, pontuação mínima e ative/desative fontes sem precisar editar arquivos de código.
+![Configurações](docs/painel_config.png)
+
+---
+
+## ⚡ Principais Recursos
+
+- 🌐 **Múltiplas Fontes Integradas**:
+  - **Glassdoor**: Coleta via CDP conectando-se ao Microsoft Edge já instalado.
+  - **LinkedIn**: Coleta pública sem necessidade de login ou credenciais.
+  - **Gupy Portal**: Integração direta com a API REST pública (`portal.gupy.io`), ultra veloz.
+  - **Programathor**: Extração de oportunidades tech/remotas com headers atualizados.
+- 🛡️ **Resiliência Anti-Bloqueio (HTTP 429)**:
+  - Delays humanizados com jitter aleatório e emulação de navegadores modernos (Chrome 131 Client Hints).
+  - Pausa inteligente com **backoff exponencial** (3h, 6h, 12h, 24h) e botão **"Retomar agora"** no painel quando a restrição expirar.
+- 💰 **Extração Automática de Metadados**:
+  - Identificação precisa de modelo de contratação: **PJ**, **CLT**, **CLT / PJ** ou **Cooperado**.
+  - Detecção e extração de faixas salariais em reais (`💰 R$ 5.000 a R$ 8.000`).
+- 🔍 **Deduplicação Cross-Site**:
+  - Detecta quando a mesma empresa publica a mesma vaga em portais diferentes (ex: Gupy vs LinkedIn vs Glassdoor).
+  - Oculta duplicatas por padrão na interface, com opção de habilitar o checkbox **"ver duplicadas"**.
+- 👻 **Detector de Vagas Expiradas (Ghost Job Detector)**:
+  - Botão **"🔍 Checar vagas ativas"** que testa os links das vagas em background e marca automaticamente como `Encerrada` aquelas que retornarem HTTP 404 ou avisos de processo finalizado.
+- 🎯 **Algoritmo de Match Contextual (NLP Leve)**:
+  - Divide a descrição em seções: *Requisitos* pesam 100%, *Diferenciais* pesam 30%, e *Benefícios/Sobre a Empresa* não contam.
+  - Calcula cobertura de habilidades, penaliza lacunas e ajusta pontuação conforme a senioridade no título.
+- 🔒 **Segurança Local & Trava Entre Processos**:
+  - Painel isolado estritamente em `127.0.0.1` com proteção contra DNS Rebinding e CSRF.
+  - Trava nativa do Windows (Named Mutex) impedindo que o painel, terminal ou agendador colidam entre si.
+
+---
+
+## 🛠️ Instalação
+
+### Pré-requisitos
+- **Windows** (utiliza o Microsoft Edge nativo e APIs de sincronização do Windows).
 - **Python 3.10+**.
-- **Microsoft Edge** instalado. Não precisa rodar `playwright install`: o raspador abre o Edge já instalado e se conecta a ele.
-
-## Instalação
 
 ```bash
+# Clone o repositório
 git clone https://github.com/GleidsonVian/raspador-de-vagas.git
 cd raspador-de-vagas
+
+# Crie e ative um ambiente virtual (opcional, mas recomendado)
+python -m venv .venv
+.venv\Scripts\activate
+
+# Instale as dependências
 pip install -r requirements.txt
 ```
 
-## Uso
+---
 
-### Painel (recomendado)
+## 🚀 Como Usar
 
+### 1. Painel Web (Recomendado)
+Para iniciar a interface web:
 ```bash
 python -m raspador
 ```
+ou simplesmente dê um duplo clique no executável `iniciar_painel.bat`.
 
-ou dê duplo clique em `iniciar_painel.bat`. Abre em <http://127.0.0.1:8765> (acessível só neste computador). Use **Rodar agora** para buscar; deixe a janela do terminal aberta enquanto usa o painel.
+O painel será aberto automaticamente no seu navegador em:
+👉 **`http://127.0.0.1:8765`**
 
-### Linha de comando
+No painel, clique em **"Rodar agora"** para iniciar a captura de todas as fontes ou selecione fontes específicas no menu dropdown.
 
+### 2. Linha de Comando (CLI)
+Você também pode rodar buscas pontuais via terminal:
 ```bash
-python cacador.py                          # todas as fontes ativas, todos os termos
-python cacador.py --fonte linkedin         # só uma fonte
-python cacador.py --termo rpa --termo n8n  # só esses termos
-python cacador.py --dias 7                 # só vagas dos últimos 7 dias
-python cacador.py --reavaliar              # recalcula o match das vagas salvas (depois de mudar o config.json)
-python cacador.py --manter-aberto          # não fecha o Edge do Glassdoor ao terminar
+python cacador.py                          # Todas as fontes ativas e termos
+python cacador.py --fonte gupy             # Apenas uma fonte específica
+python cacador.py --termo rpa --termo n8n  # Apenas termos selecionados
+python cacador.py --dias 7                 # Apenas vagas dos últimos 7 dias
+python cacador.py --reavaliar              # Recalcula o match de todas as vagas no banco
 ```
 
-### Busca diária automática
+### 3. Automação Diária Silenciosa (Windows Task Scheduler)
+Para receber um relatório diário de vagas novas no seu navegador sem precisar abrir o painel:
 
-`executar_busca.bat auto` roda a busca completa e grava o progresso em `log.txt`. Para agendar todo dia às 09:00:
-
+Execute no terminal (ajuste o caminho do seu projeto):
 ```bash
 schtasks /Create /TN "RaspadorDeVagas" /SC DAILY /ST 09:00 /TR "\"C:\caminho\raspador-de-vagas\executar_busca.bat\" auto"
 ```
+Todo dia às 09:00 o script rodará em background e, se houver vagas novas relevantes, abrirá um relatório formatado em HTML.
 
-Se houver vagas novas relevantes, um relatório `novas_AAAAMMDD_HHMM.html` abre no navegador. O PC precisa estar ligado e com você logado (o Edge abre com janela).
+---
 
-### Primeira execução do Glassdoor
+## 🧠 Como o Match de Relevância é Calculado
 
-O Glassdoor usa Cloudflare. Se aparecer **"Confirme que é humano"** na janela do Edge, clique no checkbox; o raspador espera até 5 minutos e segue. O Edge usa um perfil próprio (`perfil_edge/`, criado na hora), então o cookie fica salvo para as próximas vezes. O login no Glassdoor não é necessário.
+A pontuação de match de cada vaga é calculada por:
 
-## Como o match é calculado
+$$\text{Match} = 0.55 \times \text{Cobertura de Habilidades} + 0.45 \times \text{Pontuação do Título} + \text{Ajustes}$$
 
-```
-match = 55% × cobertura de habilidades + 45% × título  +  ajustes
-```
+- **Cobertura**: Porcentagem das tecnologias exigidas pela vaga que constam no seu dicionário `meu_perfil` em `config.json`.
+- **Título**: Pontua alto para cargos diretos de RPA (*UiPath, n8n, Selenium, Automação*), moderado para Python/Scraping, e baixo para termos genéricos.
+- **Penalidades & Lacunas**: Desconta pontos configuráveis se a vaga exigir ferramentas listadas nas suas `lacunas` (ex: plataformas proprietárias indesejadas, certificações específicas).
+- **Filtros de Bloqueio**: Vagas de QA/Testes ou que indiquem modelo presencial/híbrido são descartadas automaticamente.
 
-- **Cobertura**: das tecnologias que a vaga cita, quanto do total são habilidades suas (`meu_perfil`, com pesos). Tecnologias fora do seu perfil (`tecnologias_outras`) diluem a cobertura.
-- **Título**: 100% se citar RPA/UiPath/n8n/Selenium/automação, 50% se citar Python/scraping/integração, 10% nos demais casos.
-- **Ajustes**: nível no título (`nivel`), ferramentas em que você não é forte (`ferramentas_fracas`, entram na lista com menos prioridade) e **lacunas** (`lacunas`: GCP, Dataverse, certificações etc.), com teto de `lacunas_max_penalidade`.
-- **Relevância** (filtro): a vaga só aparece se tiver um termo núcleo de RPA no título ou ao menos dois na descrição (`termos_nucleo`), não for QA/teste (`bloqueia_qa`) e não for híbrida/presencial (`bloqueia_titulo`).
+---
 
-Tudo isso fica em `config.json`. Depois de editar, use `python cacador.py --reavaliar` ou o botão **Reavaliar vagas salvas** no painel.
-
-## Configuração (`config.json`)
-
-| Chave | O que controla |
-|---|---|
-| `termos_busca` | termos buscados no Glassdoor, em ordem de prioridade |
-| `fontes.linkedin.termos` | termos do LinkedIn (poucos, o site limita acessos) |
-| `fontes.<fonte>.ativa` | liga/desliga uma fonte |
-| `apenas_ultimos_dias` | idade máxima da vaga |
-| `pontuacao_minima` | corte de relevância |
-| `meu_perfil` | suas habilidades e o peso de cada uma |
-| `lacunas` / `lacunas_max_penalidade` | requisitos que você não tem e quanto cada um desconta |
-| `ferramentas_fracas` / `penalidade_fracas` | ferramentas que entram com menos prioridade |
-| `peso_diferencial` (opcional, padrão 0.3) | peso do que a vaga marca como diferencial |
-
-Os termos de busca e os limites também dá para editar na aba **Configurações** do painel.
-
-## Estrutura
+## 📂 Estrutura do Projeto
 
 ```
-cacador.py            CLI (usada pelo agendador)
-raspador/
-  __main__.py         python -m raspador  -> abre o painel
-  servidor.py         API FastAPI + serve a tela (127.0.0.1)
-  web/index.html      tela do painel (HTML/JS, sem build)
-  runner.py           orquestra uma execução (fontes, termos, filtros, alertas)
-  pontuacao.py        relevância, seções da descrição e % de aderência
-  banco.py            SQLite: vagas, execuções, pausas
-  trava.py            trava entre processos
-  fontes/
-    glassdoor.py      Edge real via CDP (o desafio "Confirme que é humano" é resolvido por você)
-    linkedin.py       busca pública, sem login
+raspador-de-vagas/
+├── cacador.py               # CLI para automação e execuções agendadas
+├── config.json              # Regras de pontuação, habilidades e termos
+├── requirements.txt         # Dependências Python
+├── iniciar_painel.bat       # Atalho para inicialização rápida do painel
+├── executar_busca.bat       # Script para agendamento diário
+├── docs/                    # Screenshots e capturas de tela da documentação
+│   ├── painel_vagas.png
+│   ├── painel_descricao.png
+│   ├── painel_estatisticas.png
+│   └── painel_config.png
+└── raspador/
+    ├── __main__.py          # Ponto de entrada (python -m raspador)
+    ├── servidor.py          # Backend FastAPI e rotas REST
+    ├── runner.py            # Orquestrador de execuções e progresso
+    ├── pontuacao.py         # Algoritmo de NLP, match e extração de salário/contrato
+    ├── dedup.py             # Detector de vagas duplicadas entre plataformas
+    ├── verificador.py       # Ghost Job Detector (checagem de status HTTP)
+    ├── analytics.py         # Agregação de estatísticas de mercado e tendências
+    ├── banco.py             # Conexão e migrações do SQLite (vagas.db)
+    ├── trava.py             # Trava de sincronismo entre processos (Windows Mutex)
+    ├── fontes/              # Módulos independentes de scraping
+    │   ├── glassdoor.py
+    │   ├── linkedin.py
+    │   ├── gupy.py
+    │   └── programathor.py
+    └── web/
+        └── index.html       # Interface Single Page Application (HTML/CSS/JS)
 ```
 
-### Adicionando um novo site
+---
 
-Crie `raspador/fontes/meusite.py` com uma classe que seja *context manager* e tenha `NOME`, `ROTULO`, `buscar(termo) -> list[dict]` (campos: `id`, `titulo`, `empresa`, `idade_dias`, `local`, `link`) e `descricao(vaga) -> str`, e registre-a em `raspador/fontes/__init__.py`. Se o site bloquear o acesso, levante `Bloqueio`: a fonte entra em pausa sozinha. O painel, a pontuação e a exclusão passam a valer para a nova fonte sem mais mudanças (a cor da fonte no painel é definida em `index.html`).
+## 📄 Licença
 
-## Segurança e limites
-
-- O painel escuta **só em `127.0.0.1`**, recusa hosts diferentes (DNS rebinding) e exige um header customizado nas escritas (CSRF).
-- **Não versione `perfil_edge/`**: é um perfil de navegador com cookies. Ele e os bancos `*.db` já estão no `.gitignore`.
-- **LinkedIn**: o projeto usa **somente** os endpoints públicos de busca, **sem login e sem a sua conta**, com ritmo lento e limite de descrições por execução. O LinkedIn bloqueia acessos automatizados com rapidez (HTTP 429); quando isso acontece a fonte fica em pausa automaticamente. Não use sua conta nem a API interna do app.
-- **Termos de uso**: raspagem pode violar os termos de uso dos sites. Este projeto é para **uso pessoal e de baixo volume**; você é responsável pelo uso. Não há vínculo com Glassdoor ou LinkedIn.
-- Os sites mudam o HTML sem aviso. O painel mostra um alerta quando uma fonte começa a ler zero vagas, mas o ajuste do parser é manual.
-
-## Limitações conhecidas
-
-- Só Windows por enquanto.
-- Ainda não há testes automatizados.
-- O LinkedIn rende poucas vagas por execução (é de propósito, para não ser bloqueado).
-- A leitura de "obrigatório x diferencial" depende de a descrição ter cabeçalhos como "Requisitos" e "Diferenciais".
+Este projeto é desenvolvido para fins de produtividade pessoal e pesquisa. Sinta-se livre para customizar de acordo com seu perfil de trabalho.

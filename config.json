@@ -251,6 +251,42 @@
       ],
       "max_descricoes_por_execucao": 8,
       "pausa_base_horas": 3
+    },
+    "gupy": {
+      "ativa": true,
+      "max_paginas": 2,
+      "limite_por_pagina": 20,
+      "pausa_busca_seg": [
+        1.0,
+        2.5
+      ],
+      "termos": [
+        "rpa",
+        "desenvolvedor rpa",
+        "analista de automacao",
+        "automacao python",
+        "n8n",
+        "uipath"
+      ]
+    },
+    "programathor": {
+      "ativa": true,
+      "max_paginas": 2,
+      "pausa_busca_seg": [
+        1.5,
+        3.0
+      ],
+      "pausa_descricao_seg": [
+        1.0,
+        2.0
+      ],
+      "termos": [
+        "rpa",
+        "python",
+        "automacao",
+        "scraping",
+        "selenium"
+      ]
     }
   },
   "lacunas": {

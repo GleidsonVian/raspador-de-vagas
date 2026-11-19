@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from . import banco, config, runner
+from . import analytics, banco, config, dedup, runner, verificador
 from .fontes import FONTES
 
 PORTA = int(os.environ.get("RASPADOR_PORTA", 8765))
@@ -45,13 +45,15 @@ def index():
 
 
 @app.get("/api/vagas")
-def listar(fonte: str = "", status: str = "", q: str = "", min_match: int = 0,
-           excluidas: bool = False, todas: bool = False, limite: int = 500):
-    """todas=False mostra so as relevantes (score >= pontuacao_minima)."""
+def listar(fonte: str = "", status: str = "", q: str = "", contrato: str = "", min_match: int = 0,
+           excluidas: bool = False, todas: bool = False, duplicadas: bool = False, limite: int = 500):
+    """todas=False mostra so as relevantes; duplicadas=False oculta vagas repetidas."""
     minimo = config.carregar()["pontuacao_minima"]
-    sql = ("SELECT id,fonte,titulo,empresa,nota,idade_dias,local,easy,link,termo,score,match,visto_em,status,excluida "
+    sql = ("SELECT id,fonte,titulo,empresa,nota,idade_dias,local,easy,link,termo,score,match,visto_em,status,excluida,contrato,salario,duplicada_de,encerrada "
            "FROM vagas WHERE excluida=? AND match>=?")
     par: list = [1 if excluidas else 0, min_match]
+    if not duplicadas:
+        sql += " AND (duplicada_de IS NULL OR duplicada_de = '')"
     if not todas:
         sql += " AND score>=?"
         par.append(minimo)
@@ -61,6 +63,9 @@ def listar(fonte: str = "", status: str = "", q: str = "", min_match: int = 0,
     if status:
         sql += " AND status=?"
         par.append(status)
+    if contrato:
+        sql += " AND contrato LIKE ?"
+        par.append(f"%{contrato}%")
     if q:
         sql += " AND (titulo LIKE ? OR empresa LIKE ?)"
         par += [f"%{q}%", f"%{q}%"]
@@ -160,6 +165,25 @@ def resumo():
             "fontes": {n: c.ROTULO for n, c in FONTES.items()}}
 
 
+@app.get("/api/analytics")
+def dados_analytics():
+    con = banco.conectar()
+    try:
+        return analytics.obter_analytics(con)
+    finally:
+        con.close()
+
+
+@app.post("/api/pausa/{fonte}/limpar")
+def limpar_pausa(fonte: str):
+    con = banco.conectar()
+    try:
+        banco.retomar(con, fonte)
+    finally:
+        con.close()
+    return {"ok": True}
+
+
 @app.get("/api/saude")
 def saude():
     """Estado de cada fonte: ok / alerta (suspeita de layout mudado) / erro / nunca rodou."""
@@ -223,6 +247,26 @@ def reavaliar():
     return {"vagas": runner.reavaliar()}
 
 
+@app.post("/api/vagas/verificar-ativas")
+def verificar_ativas():
+    if runner.ESTADO["rodando"]:
+        raise HTTPException(409, "aguarde a execucao terminar")
+    con = banco.conectar()
+    try:
+        return verificador.verificar_ativas(con)
+    finally:
+        con.close()
+
+
+@app.post("/api/dedup")
+def rodar_dedup():
+    con = banco.conectar()
+    try:
+        return {"duplicadas": dedup.atualizar_duplicadas(con)}
+    finally:
+        con.close()
+
+
 @app.post("/api/parar")
 def parar():
     runner.PARAR.set()
@@ -241,10 +285,14 @@ def execucoes():
 class ConfigIn(BaseModel):
     termos_busca: list[str]
     termos_linkedin: list[str]
+    termos_gupy: list[str] = []
+    termos_programathor: list[str] = []
     pontuacao_minima: int
     apenas_ultimos_dias: int
     glassdoor_ativa: bool = True
     linkedin_ativa: bool = True
+    gupy_ativa: bool = True
+    programathor_ativa: bool = True
 
 
 def _limpa(lst: list[str]) -> list[str]:
@@ -260,10 +308,15 @@ def _limpa(lst: list[str]) -> list[str]:
 @app.get("/api/config")
 def ler_config():
     c = config.carregar()
-    return {"termos_busca": c["termos_busca"], "termos_linkedin": c["fontes"]["linkedin"].get("termos", []),
+    return {"termos_busca": c["termos_busca"],
+            "termos_linkedin": c["fontes"]["linkedin"].get("termos", []),
+            "termos_gupy": c["fontes"].get("gupy", {}).get("termos") or ["rpa", "desenvolvedor rpa", "analista de automacao", "automacao python", "n8n", "uipath"],
+            "termos_programathor": c["fontes"].get("programathor", {}).get("termos") or ["rpa", "python", "automacao", "scraping", "selenium"],
             "pontuacao_minima": c["pontuacao_minima"], "apenas_ultimos_dias": c["apenas_ultimos_dias"],
             "glassdoor_ativa": c["fontes"]["glassdoor"].get("ativa", True),
-            "linkedin_ativa": c["fontes"]["linkedin"].get("ativa", True)}
+            "linkedin_ativa": c["fontes"]["linkedin"].get("ativa", True),
+            "gupy_ativa": c["fontes"].get("gupy", {}).get("ativa", True),
+            "programathor_ativa": c["fontes"].get("programathor", {}).get("ativa", True)}
 
 
 @app.put("/api/config")
@@ -275,6 +328,14 @@ def salvar_config(corpo: ConfigIn):
     c["apenas_ultimos_dias"] = max(1, min(corpo.apenas_ultimos_dias, 90))
     c["fontes"]["glassdoor"]["ativa"] = corpo.glassdoor_ativa
     c["fontes"]["linkedin"]["ativa"] = corpo.linkedin_ativa
+    if "gupy" not in c["fontes"]:
+        c["fontes"]["gupy"] = {}
+    c["fontes"]["gupy"]["termos"] = _limpa(corpo.termos_gupy)
+    c["fontes"]["gupy"]["ativa"] = corpo.gupy_ativa
+    if "programathor" not in c["fontes"]:
+        c["fontes"]["programathor"] = {}
+    c["fontes"]["programathor"]["termos"] = _limpa(corpo.termos_programathor)
+    c["fontes"]["programathor"]["ativa"] = corpo.programathor_ativa
     config.salvar(c)
     return {"ok": True}
 

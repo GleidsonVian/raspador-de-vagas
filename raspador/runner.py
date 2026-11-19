@@ -8,9 +8,9 @@ import time
 from collections import deque
 from datetime import datetime
 
-from . import banco, config, trava
+from . import banco, config, dedup, trava
 from .fontes import FONTES, Bloqueio
-from .pontuacao import explicar, pontuar
+from .pontuacao import explicar, pontuar, extrair_metadados
 from .trava import JaRodando
 
 # estado compartilhado com o painel
@@ -32,7 +32,7 @@ def termos_da_fonte(cfg: dict, nome: str) -> list[str]:
 
 
 def _avaliar(cfg: dict, v: dict) -> bool:
-    """Pontua a vaga (preenche score, match e motivo). Retorna True se for relevante."""
+    """Pontua a vaga (preenche score, match, motivo, contrato e salario). Retorna True se for relevante."""
     sc = pontuar(cfg, v["titulo"], v["descricao"])
     v["score"] = -1 if sc is None else sc
     if sc:
@@ -40,6 +40,8 @@ def _avaliar(cfg: dict, v: dict) -> bool:
         v["match"], v["motivo"] = ex["match"], json.dumps(ex, ensure_ascii=False)
     else:
         v["match"], v["motivo"] = 0, ""
+    meta = extrair_metadados(v["titulo"], v.get("descricao", ""), v.get("tipo_raw", ""))
+    v["contrato"], v["salario"] = meta["contrato"], meta["salario"]
     return sc is not None and sc >= cfg["pontuacao_minima"]
 
 
@@ -166,6 +168,10 @@ def _executar(fontes, termos, dias, manter_aberto) -> list[dict]:
             _log("Nenhuma vaga nova desde a ultima execucao (as ja vistas ficam no banco).")
     finally:
         ESTADO.update(rodando=False, fim=banco.agora(), fonte=None, termo=None)
+        try:
+            dedup.atualizar_duplicadas(con)
+        except Exception:
+            pass
         con.close()
     return relevantes
 
@@ -198,9 +204,9 @@ def relatorio_html(vagas: list[dict]):
         f"<td>{html.escape(v['empresa'])}</td><td>{html.escape(v['fonte'])}</td>"
         f"<td>{'Sim' if v.get('easy') else 'Não'}</td></tr>" for v in vagas)
     p = config.BASE / f"novas_{datetime.now():%Y%m%d_%H%M}.html"
-    p.write_text("<meta charset=utf-8><h2>%d vagas novas</h2><table border=1 cellpadding=6>"
-                 "<tr><th>% match</th><th>vaga</th><th>empresa</th><th>fonte</th><th>Candidatura Rápida</th></tr>%s</table>"
-                 % (len(vagas), linhas), encoding="utf-8")
+    p.write_text(f"<meta charset=utf-8><h2>{len(vagas)} vagas novas</h2><table border=1 cellpadding=6>"
+                 f"<tr><th>% match</th><th>vaga</th><th>empresa</th><th>fonte</th><th>Candidatura Rápida</th></tr>{linhas}</table>",
+                 encoding="utf-8")
     return p
 
 
@@ -221,9 +227,13 @@ def reavaliar() -> int:
         for r in linhas:
             v = {"titulo": r["titulo"], "descricao": r["descricao"] or ""}
             _avaliar(cfg, v)
-            con.execute("UPDATE vagas SET score=?, match=?, motivo=? WHERE id=?",
-                        (v["score"], v["match"], v["motivo"], r["id"]))
+            con.execute("UPDATE vagas SET score=?, match=?, motivo=?, contrato=?, salario=? WHERE id=?",
+                        (v["score"], v["match"], v["motivo"], v["contrato"], v["salario"], r["id"]))
         con.commit()
+        try:
+            dedup.atualizar_duplicadas(con)
+        except Exception:
+            pass
         return len(linhas)
     finally:
         con.close()

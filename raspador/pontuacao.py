@@ -135,3 +135,69 @@ def explicar(cfg: dict, titulo: str, desc: str) -> dict:
 
 def aderencia(cfg: dict, titulo: str, desc: str) -> int:
     return explicar(cfg, titulo, desc)["match"]
+
+def extrair_metadados(titulo: str, desc: str, tipo_raw: str = "") -> dict:
+    """Detecta automaticamente modelo de contratação (CLT/PJ) e faixa salarial na descrição."""
+    t_full = f"{titulo} {desc}"
+    t_norm = norm(t_full)
+
+    # 1. Contrato
+    contrato = ""
+    tipo_l = tipo_raw.lower() if tipo_raw else ""
+    if "legal_entity" in tipo_l:
+        contrato = "PJ"
+    elif "effective" in tipo_l:
+        contrato = "CLT"
+    elif "associate" in tipo_l or "cooperad" in tipo_l:
+        contrato = "Cooperado"
+    elif "internship" in tipo_l or "estag" in tipo_l:
+        contrato = "Estágio"
+
+    if not contrato:
+        tem_pj = bool(re.search(r'\bpj\b|pessoa jur[ií]dica|contrata[cç][aã]o pj|regime pj|modelo pj|prestador de servi[cç]o', t_norm))
+        tem_clt = bool(re.search(r'\bclt\b|carteira assinada|regime clt|contrata[cç][aã]o clt|vaga efetiva', t_norm))
+        tem_coop = bool(re.search(r'cooperad[ao]|cooperativa', t_norm))
+
+        if tem_pj and tem_clt:
+            contrato = "CLT / PJ"
+        elif tem_pj:
+            contrato = "PJ"
+        elif tem_clt:
+            contrato = "CLT"
+        elif tem_coop:
+            contrato = "Cooperado"
+
+    # 2. Salário
+    salario = ""
+    for m in re.finditer(r'(?:r\$\s*)?(\d{1,2}(?:\.\d{3})*(?:,\d{2})?)\s*(?:mil|k)?\s*(?:a|ate|-|–|—)\s*(?:r\$\s*)?(\d{1,2}(?:\.\d{3})*(?:,\d{2})?)\s*(?:mil|k)?', t_norm):
+        ini, fim = max(0, m.start() - 40), min(len(t_norm), m.end() + 40)
+        janela = t_norm[ini:fim]
+        if any(w in janela for w in ('salario', 'remuneracao', 'faixa', 'r$', 'bolsa', 'pagamento')):
+            v1, v2 = m.group(1), m.group(2)
+            try:
+                n1 = int(v1.split(',')[0].replace('.', ''))
+                n2 = int(v2.split(',')[0].replace('.', ''))
+                if 1000 <= n1 <= 60000 and 1000 <= n2 <= 60000 and n1 <= n2:
+                    salario = f"R$ {v1} a R$ {v2}"
+                    break
+            except Exception:
+                pass
+
+    if not salario:
+        m_k = re.search(r'\b(\d{1,2})\s*k\s*(?:a|ate|-|–|—)\s*(\d{1,2})\s*k\b', t_norm)
+        if m_k:
+            salario = f"R$ {m_k.group(1)}k a {m_k.group(2)}k"
+
+    if not salario:
+        m_pontual = re.search(r'(?:salario|remuneracao|bolsa)\s*(?:de|fixo|bruto)?\s*[:=-]?\s*(?:r\$\s*)(\d{1,2}(?:\.\d{3})*(?:,\d{2})?)', t_norm)
+        if m_pontual:
+            v = m_pontual.group(1)
+            try:
+                val = int(v.split(',')[0].replace('.', ''))
+                if 1100 <= val <= 60000 and val not in (2024, 2025, 2026):
+                    salario = f"R$ {v}"
+            except Exception:
+                pass
+
+    return {"contrato": contrato, "salario": salario}
+

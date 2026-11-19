@@ -9,14 +9,14 @@
 :root{
   --bg:#f5f6f8; --card:#fff; --txt:#1a2230; --mut:#667085; --bd:#e2e5ea; --pri:#1a5fb4; --pri-t:#fff;
   --ok:#157f4b; --okb:#e4f5ec; --mid:#9a6700; --midb:#fff3d6; --low:#667085; --lowb:#eef0f3; --bad:#b42318; --badb:#fde8e6;
-  --f-glassdoor:#7e3af2; --f-linkedin:#0a66c2; /* cor de cada fonte */
+  --f-glassdoor:#7e3af2; --f-linkedin:#0a66c2; --f-gupy:#00a868; --f-programathor:#e65100; /* cor de cada fonte */
 }
 @media (prefers-color-scheme:dark){:root:not([data-tema="claro"]){
   --bg:#12161d; --card:#1b212b; --txt:#e8ecf2; --mut:#98a2b3; --bd:#2b3340; --pri:#5b9cf0; --pri-t:#0b1220;
-  --ok:#5fd09a; --okb:#16352a; --mid:#f2c14e; --midb:#3a2f12; --low:#98a2b3; --lowb:#252c38; --bad:#ff8a80; --badb:#3d1a18; --f-glassdoor:#b794f6; --f-linkedin:#6aa9f0;}}
+  --ok:#5fd09a; --okb:#16352a; --mid:#f2c14e; --midb:#3a2f12; --low:#98a2b3; --lowb:#252c38; --bad:#ff8a80; --badb:#3d1a18; --f-glassdoor:#b794f6; --f-linkedin:#6aa9f0; --f-gupy:#2ee59d; --f-programathor:#ff9800;}}
 :root[data-tema="escuro"]{
   --bg:#12161d; --card:#1b212b; --txt:#e8ecf2; --mut:#98a2b3; --bd:#2b3340; --pri:#5b9cf0; --pri-t:#0b1220;
-  --ok:#5fd09a; --okb:#16352a; --mid:#f2c14e; --midb:#3a2f12; --low:#98a2b3; --lowb:#252c38; --bad:#ff8a80; --badb:#3d1a18; --f-glassdoor:#b794f6; --f-linkedin:#6aa9f0;}
+  --ok:#5fd09a; --okb:#16352a; --mid:#f2c14e; --midb:#3a2f12; --low:#98a2b3; --lowb:#252c38; --bad:#ff8a80; --badb:#3d1a18; --f-glassdoor:#b794f6; --f-linkedin:#6aa9f0; --f-gupy:#2ee59d; --f-programathor:#ff9800;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
@@ -50,8 +50,18 @@ td.titulo small{display:block;color:var(--mut)}
 .b-alto{background:var(--okb);color:var(--ok)}.b-medio{background:var(--midb);color:var(--mid)}.b-baixo{background:var(--lowb);color:var(--low)}
 .tag{font-size:12px;padding:1px 7px;border-radius:5px;background:var(--lowb);color:var(--mut)}
 .tag.sim{background:var(--okb);color:var(--ok)}
+.tag.pj{background:color-mix(in srgb,#7e3af2 18%,transparent);color:#7e3af2;font-weight:650}
+.tag.clt{background:color-mix(in srgb,#0a66c2 18%,transparent);color:#0a66c2;font-weight:650}
+.tag.ambos{background:color-mix(in srgb,#e65100 18%,transparent);color:#e65100;font-weight:650}
+.tag.coop{background:color-mix(in srgb,#00a868 18%,transparent);color:#00a868;font-weight:650}
+.tag.salario{background:var(--okb);color:var(--ok);font-weight:650;letter-spacing:-.01em}
+.tag.encerrada{background:rgba(120,130,140,.2);color:var(--mut);border:1px dashed var(--bd);font-weight:600}
+.tag.dup{background:rgba(180,180,190,.18);color:var(--mut);font-size:11px}
+.hl-skill{background:rgba(46,229,157,.25);color:inherit;padding:1px 5px;border-radius:4px;font-weight:650}
+.hl-lacuna{background:rgba(255,90,90,.25);color:inherit;padding:1px 5px;border-radius:4px;font-weight:650;text-decoration:underline wavy rgba(255,80,80,.6)}
+.hl-sec{background:rgba(255,200,50,.25);color:inherit;padding:2px 6px;border-radius:4px;font-weight:700}
 /* cor por fonte: etiqueta, faixa lateral da linha e chip de saude */
-.f-glassdoor{--fc:var(--f-glassdoor)}.f-linkedin{--fc:var(--f-linkedin)}
+.f-glassdoor{--fc:var(--f-glassdoor)}.f-linkedin{--fc:var(--f-linkedin)}.f-gupy{--fc:var(--f-gupy)}.f-programathor{--fc:var(--f-programathor)}
 .fonte{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;color:var(--fc,var(--mut));
   background:color-mix(in srgb,var(--fc,var(--mut)) 16%,transparent);border:1px solid color-mix(in srgb,var(--fc,var(--mut)) 40%,transparent)}
 tr.vaga td:first-child{box-shadow:inset 4px 0 0 var(--fc,transparent)}
@@ -77,6 +87,13 @@ tr.desc td{background:var(--bg);white-space:pre-wrap;color:var(--txt);max-height
 pre.log{margin:6px 0 0;max-height:170px;overflow:auto;font:12px/1.4 ui-monospace,Consolas,monospace;background:var(--bg);padding:8px;border-radius:7px;white-space:pre-wrap}
 .pill{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--lowb);color:var(--mut)}
 .pill.on{background:var(--okb);color:var(--ok)}
+.abas-status{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab-status{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px;color:var(--mut);transition:all .15s ease}
+.tab-status:hover{border-color:var(--pri);color:var(--txt)}
+.tab-status.ativa{background:var(--pri);color:var(--pri-t);border-color:var(--pri);font-weight:650}
+.tab-status .cnt{font-size:11px;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,currentColor 18%,transparent);font-variant-numeric:tabular-nums}
+.kpi.clicavel{cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.kpi.clicavel:hover{border-color:var(--pri);transform:translateY(-2px)}
 .cfg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:760px){.cfg{grid-template-columns:1fr}.hide-m{display:none}}
 .cfg textarea{width:100%;min-height:260px;font:13px ui-monospace,Consolas,monospace}
@@ -88,6 +105,18 @@ dialog h3{margin:0 0 8px}dialog .op{border:1px solid var(--bd);border-radius:9px
 dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
 .menu{position:absolute;right:20px;top:54px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:9}
 .menu.on{display:block}.menu label{display:flex;gap:7px;padding:3px 0}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-top:16px}
+.stat-card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.stat-card h3{margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:8px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.bar-label{width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:550}
+.bar-track{flex:1;height:9px;background:var(--lowb);border-radius:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:5px;transition:width .5s ease}
+.bar-val{min-width:70px;text-align:right;font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.company-list{display:flex;flex-direction:column;gap:6px}
+.company-item{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-radius:7px;background:color-mix(in srgb,var(--txt) 3%,transparent);font-size:13px;transition:background .15s ease}
+.company-item:hover{background:color-mix(in srgb,var(--pri) 12%,transparent);cursor:pointer}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--txt);color:var(--bg);padding:8px 14px;border-radius:8px;display:none;z-index:20}
 </style>
 </head>
@@ -120,20 +149,32 @@ dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
     <button class="ativa" data-aba="vagas">Vagas</button>
     <button data-aba="exec">Execuções</button>
     <button data-aba="cfg">Configurações</button>
+    <button data-aba="stats">📊 Estatísticas</button>
   </nav>
 
   <section id="aba-vagas">
+    <nav class="abas-status" id="abasStatus">
+      <button class="tab-status ativa" data-status="nova">Novas <span class="cnt" id="cnt-nova">0</span></button>
+      <button class="tab-status" data-status="interessado">Interessado <span class="cnt" id="cnt-interessado">0</span></button>
+      <button class="tab-status" data-status="candidatado">Candidatado <span class="cnt" id="cnt-candidatado">0</span></button>
+      <button class="tab-status" data-status="descartado">Descartadas <span class="cnt" id="cnt-descartado">0</span></button>
+      <button class="tab-status" data-status="">Todas <span class="cnt" id="cnt-todas">0</span></button>
+    </nav>
+
     <div class="filtros">
       <input id="fQ" type="search" placeholder="Buscar cargo ou empresa" style="min-width:210px">
       <select id="fFonte"><option value="">Todas as fontes</option></select>
-      <select id="fStatus">
-        <option value="">Qualquer status</option><option value="nova">Nova</option>
-        <option value="interessado">Interessado</option><option value="candidatado">Candidatado</option>
-        <option value="descartado">Descartado</option>
+      <select id="fContrato">
+        <option value="">Qualquer contrato</option>
+        <option value="PJ">Apenas PJ</option>
+        <option value="CLT">Apenas CLT</option>
+        <option value="Cooperado">Cooperado</option>
       </select>
       <label>Match mín. <input id="fMatch" type="number" min="0" max="100" value="0" style="width:64px">%</label>
       <label><input id="fTodas" type="checkbox"> incluir não relevantes</label>
       <label><input id="fExc" type="checkbox"> ver excluídas</label>
+      <label><input id="fDups" type="checkbox"> ver duplicadas</label>
+      <button class="mini" id="btnChecarAtivas" title="Verifica se os links das vagas ainda estão no ar">🔍 Checar vagas ativas</button>
       <span class="sp"></span><span id="contagem" style="color:var(--mut)"></span>
     </div>
     <div id="tabela"></div>
@@ -145,16 +186,46 @@ dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
     <div class="cfg">
       <div><h3>Termos de busca (Glassdoor)</h3><p>Um por linha, em ordem de prioridade.</p><textarea id="cTermos"></textarea></div>
       <div><h3>Termos de busca (LinkedIn)</h3><p>Poucos termos: o LinkedIn limita acessos. Um por linha.</p><textarea id="cTermosLi"></textarea></div>
+      <div><h3>Termos de busca (Gupy)</h3><p>Termos buscados na API da Gupy. Um por linha.</p><textarea id="cTermosGp"></textarea></div>
+      <div><h3>Termos de busca (Programathor)</h3><p>Termos de vagas tech remotas. Um por linha.</p><textarea id="cTermosProg"></textarea></div>
     </div>
     <div class="linha">
       <label>Só vagas dos últimos <input id="cDias" type="number" min="1" max="90" style="width:70px"> dias</label>
       <label>Pontuação mínima de relevância <input id="cMin" type="number" min="0" max="100" style="width:70px"></label>
       <label><input id="cGd" type="checkbox"> Glassdoor ativo</label>
       <label><input id="cLi" type="checkbox"> LinkedIn ativo</label>
+      <label><input id="cGp" type="checkbox"> Gupy ativo</label>
+      <label><input id="cProg" type="checkbox"> Programathor ativo</label>
       <button class="pri" id="salvarCfg">Salvar configurações</button>
       <button id="reav" title="Recalcula o match de todas as vagas salvas com as regras atuais">Reavaliar vagas salvas</button>
     </div>
     <p style="color:var(--mut);font-size:12px">As regras de pontuação (suas habilidades, ferramentas com menos prioridade, bloqueios) ficam em <code>config.json</code> (depois de editar, use "Reavaliar vagas salvas").</p>
+  </section>
+
+  <section id="aba-stats" hidden>
+    <div class="kpi-row" id="statsKpis"></div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>🚀 Top Tecnologias Mais Demandadas</h3>
+        <div id="statTechs"></div>
+      </div>
+      <div class="stat-card">
+        <h3>💼 Modelos de Contratação</h3>
+        <div id="statContratos"></div>
+      </div>
+      <div class="stat-card">
+        <h3>🎓 Distribuição por Senioridade</h3>
+        <div id="statSenioridades"></div>
+      </div>
+      <div class="stat-card">
+        <h3>🏢 Top Empresas Contratantes</h3>
+        <div id="statEmpresas" class="company-list"></div>
+      </div>
+      <div class="stat-card" style="grid-column: 1 / -1">
+        <h3>🌐 Desempenho e Relevância por Fonte</h3>
+        <div id="statFontes"></div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -190,26 +261,44 @@ $("#tema").onclick=()=>{const atual=document.documentElement.dataset.tema||(matc
 /* abas */
 document.querySelectorAll("nav.abas button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav.abas button").forEach(x=>x.classList.toggle("ativa",x===b));
-  ["vagas","exec","cfg"].forEach(a=>$("#aba-"+a).hidden=a!==b.dataset.aba);
-  if(b.dataset.aba==="exec")carregaExecs(); if(b.dataset.aba==="cfg")carregaCfg();
+  ["vagas","exec","cfg","stats"].forEach(a=>$("#aba-"+a).hidden=a!==b.dataset.aba);
+  if(b.dataset.aba==="exec")carregaExecs(); if(b.dataset.aba==="cfg")carregaCfg(); if(b.dataset.aba==="stats")carregaStats();
 });
 
 /* resumo / cards */
 async function carregaResumo(){
   const r=await api("/api/resumo");fontes=r.fontes;
   const s=r.por_status,tot=Object.values(s).reduce((a,b)=>a+b,0);
-  $("#cards").innerHTML=[["Vagas relevantes",tot],["Novas",s.nova||0],["Interessado",s.interessado||0],["Candidatado",s.candidatado||0],["Lidas no total",r.lidas_total]]
-    .map(([t,n])=>`<div class="kpi"><b>${n}</b><span>${t}</span></div>`).join("");
+  $("#cards").innerHTML=[["Vagas relevantes",tot,""],["Novas",s.nova||0,"nova"],["Interessado",s.interessado||0,"interessado"],["Candidatado",s.candidatado||0,"candidatado"],["Descartadas",s.descartado||0,"descartado"],["Lidas no total",r.lidas_total,null]]
+    .map(([t,n,st])=>`<div class="kpi ${st!==null?'clicavel':''}" ${st!==null?`data-status="${st}" title="Filtrar por ${t}"`:''}><b>${n}</b><span>${t}</span></div>`).join("");
+  if($("#cnt-nova"))$("#cnt-nova").textContent=s.nova||0;
+  if($("#cnt-interessado"))$("#cnt-interessado").textContent=s.interessado||0;
+  if($("#cnt-candidatado"))$("#cnt-candidatado").textContent=s.candidatado||0;
+  if($("#cnt-descartado"))$("#cnt-descartado").textContent=s.descartado||0;
+  if($("#cnt-todas"))$("#cnt-todas").textContent=tot;
   const sel=$("#fFonte"),atual=sel.value;
   sel.innerHTML='<option value="">Todas as fontes</option>'+Object.entries(fontes).map(([k,v])=>`<option value="${esc(k)}">${esc(v)}</option>`).join("");
   sel.value=atual;
-  $("#menuFontes").innerHTML=Object.entries(fontes).map(([k,v])=>`<label><input type="checkbox" value="${esc(k)}" checked> ${esc(v)}</label>`).join("");
+  $("#menuFontes").innerHTML=`<label style="font-weight:650;border-bottom:1px solid var(--bd);padding-bottom:6px;margin-bottom:6px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="chkRodarTudo" checked> Rodar todas juntas</label>`+Object.entries(fontes).map(([k,v])=>`<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="chk-fonte" value="${esc(k)}" checked> ${esc(v)}</label>`).join("");
+  const allChk=$("#chkRodarTudo");
+  if(allChk){
+    allChk.onchange=e=>{document.querySelectorAll("#menuFontes .chk-fonte").forEach(c=>c.checked=e.target.checked)};
+    document.querySelectorAll("#menuFontes .chk-fonte").forEach(c=>{
+      c.onchange=()=>{
+        const itens=[...document.querySelectorAll("#menuFontes .chk-fonte")];
+        allChk.checked=itens.every(x=>x.checked);
+        allChk.indeterminate=itens.some(x=>x.checked)&&!allChk.checked;
+      };
+    });
+  }
 }
 
 /* vagas */
+let statusAtivo="nova";
 const classeMatch=m=>m>=70?"b-alto":m>=45?"b-medio":"b-baixo";
 async function carregaVagas(){
-  const p=new URLSearchParams({fonte:$("#fFonte").value,status:$("#fStatus").value,q:$("#fQ").value,
+  document.querySelectorAll(".tab-status").forEach(b=>b.classList.toggle("ativa",b.dataset.status===statusAtivo));
+  const p=new URLSearchParams({fonte:$("#fFonte").value,status:statusAtivo,contrato:$("#fContrato").value,duplicadas:$("#fDups").checked,q:$("#fQ").value,
     min_match:$("#fMatch").value||0,excluidas:$("#fExc").checked,todas:$("#fTodas").checked});
   const v=await api("/api/vagas?"+p);
   $("#contagem").textContent=v.length+" vaga(s)";
@@ -219,7 +308,13 @@ async function carregaVagas(){
     const href=/^https?:\/\//.test(x.link||"")?esc(x.link):"#";
     const st=["nova","interessado","candidatado","descartado"].map(s=>`<option value="${s}" ${x.status===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("");
     return `<tr class="vaga f-${esc(x.fonte)}" data-id="${esc(x.id)}"><td><span class="badge ${classeMatch(x.match)}" title="Clique em Descrição para ver por que deu ${x.match}%">${x.match}%</span></td>
-      <td class="titulo"><a href="${href}" target="_blank" rel="noopener noreferrer">${esc(x.titulo)}</a><small>${esc(x.empresa)}${x.nota?` · ★ ${x.nota}`:""} · ${esc(x.local)}</small></td>
+      <td class="titulo">
+        <a href="${href}" target="_blank" rel="noopener noreferrer">${esc(x.titulo)}</a>
+        ${x.encerrada?`<span class="tag encerrada" title="Vaga não está mais recebendo candidaturas">Encerrada</span> `:""}
+        ${x.duplicada_de?`<span class="tag dup" title="Mesma vaga já cadastrada em outra fonte">Duplicada</span> `:""}
+        ${x.contrato?`<span class="tag ${x.contrato.includes('PJ')&&x.contrato.includes('CLT')?'ambos':(x.contrato.includes('PJ')?'pj':(x.contrato.includes('Cooperado')?'coop':'clt'))}">${esc(x.contrato)}</span>`:''}
+        ${x.salario?`<span class="tag salario" title="Remuneração identificada">💰 ${esc(x.salario)}</span>`:''}
+        <small>${esc(x.empresa)}${x.nota?` · ★ ${x.nota}`:""} · ${esc(x.local)}</small></td>
       <td class="hide-m"><span class="fonte">${esc(fontes[x.fonte]||x.fonte)}</span></td>
       <td class="hide-m"><span class="tag ${x.easy?"sim":""}">${x.easy?"Sim":"Não"}</span></td>
       <td class="hide-m">${fmtData(x.capturada_em)}</td>
@@ -228,8 +323,27 @@ async function carregaVagas(){
 }
 $("#tabela").addEventListener("change",async e=>{
   if(!e.target.classList.contains("st"))return;
-  const id=e.target.closest("tr").dataset.id;
-  try{await api(`/api/vagas/${encodeURIComponent(id)}/status`,"POST",{status:e.target.value});toast("Status atualizado");carregaResumo()}catch(err){toast(err.message)}
+  const tr=e.target.closest("tr.vaga");
+  const id=tr.dataset.id;
+  const novoStatus=e.target.value;
+  try{
+    await api(`/api/vagas/${encodeURIComponent(id)}/status`,"POST",{status:novoStatus});
+    toast(`Vaga movida para ${novoStatus[0].toUpperCase()+novoStatus.slice(1)}`);
+    carregaResumo();
+    if(statusAtivo && statusAtivo!==novoStatus){
+      tr.style.transition="opacity .25s ease, transform .25s ease";
+      tr.style.opacity="0";
+      tr.style.transform="translateX(20px)";
+      setTimeout(()=>{
+        tr.remove();
+        const resto=document.querySelectorAll("#tabela tr.vaga").length;
+        $("#contagem").textContent=resto+" vaga(s)";
+        if(!resto){
+          $("#tabela").innerHTML=`<div class="vazio">Nenhuma vaga em <b>${statusAtivo}</b>.</div>`;
+        }
+      },250);
+    }
+  }catch(err){toast(err.message)}
 });
 $("#tabela").addEventListener("click",async e=>{
   const tr=e.target.closest("tr.vaga");if(!tr)return;const id=tr.dataset.id;
@@ -239,8 +353,8 @@ $("#tabela").addEventListener("click",async e=>{
     try{const d=await api(`/api/vagas/${encodeURIComponent(id)}/descricao`);
       const n=document.createElement("tr");n.className="desc";const td=document.createElement("td");td.colSpan=7;
       if(d.motivo)td.append(montaMotivo(d.motivo,tr.querySelector(".badge").textContent));
-      const corpo=document.createElement("div");corpo.style.whiteSpace="pre-wrap";
-      corpo.textContent=d.descricao||"(sem descrição coletada)";td.append(corpo);n.append(td);tr.after(n)}catch(err){toast(err.message)}
+      td.append(montaDescricaoColorida(d.descricao, d.motivo));
+      n.append(td);tr.after(n)}catch(err){toast(err.message)}
   }else if(e.target.classList.contains("exc")){
     idExcluir=id;$("#dlgTitulo").textContent=tr.querySelector("td.titulo a").textContent;$("#dlgExcluir").showModal();
   }else if(e.target.classList.contains("rest")){
@@ -252,12 +366,65 @@ const excluir=async def=>{try{await api(`/api/vagas/${encodeURIComponent(idExclu
 $("#exOcultar").onclick=()=>excluir(false);
 $("#exApagar").onclick=()=>{if(confirm("Apagar definitivamente? Isso não pode ser desfeito."))excluir(true)};
 $("#exCancelar").onclick=()=>$("#dlgExcluir").close();
-["fFonte","fStatus","fMatch","fTodas","fExc"].forEach(i=>$("#"+i).addEventListener("change",carregaVagas));
+["fFonte","fContrato","fMatch","fTodas","fExc","fDups"].forEach(i=>$("#"+i).addEventListener("change",carregaVagas));
+$("#btnChecarAtivas").onclick = async () => {
+  const btn = $("#btnChecarAtivas");
+  btn.disabled = true;
+  btn.textContent = "Verificando...";
+  try {
+    const res = await api("/api/vagas/verificar-ativas", "POST");
+    toast(`Verificação concluída: ${res.verificadas} verificadas, ${res.encerradas} encerradas.`);
+    recarrega();
+  } catch(e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔍 Checar vagas ativas";
+  }
+};
+$("#abasStatus").addEventListener("click",e=>{
+  const b=e.target.closest(".tab-status");if(!b)return;
+  statusAtivo=b.dataset.status;
+  document.querySelectorAll(".tab-status").forEach(x=>x.classList.toggle("ativa",x===b));
+  carregaVagas();
+});
+$("#cards").addEventListener("click",e=>{
+  const k=e.target.closest(".kpi.clicavel");if(!k)return;
+  statusAtivo=k.dataset.status;
+  document.querySelectorAll(".tab-status").forEach(x=>x.classList.toggle("ativa",x.dataset.status===statusAtivo));
+  carregaVagas();
+});
 let deb;$("#fQ").addEventListener("input",()=>{clearTimeout(deb);deb=setTimeout(carregaVagas,250)});
 const recarrega=()=>{carregaResumo();carregaVagas();carregaSaude()};
 
 /* por que esse match? (montado com textContent: titulos/descricoes vem de terceiros) */
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function montaDescricaoColorida(desc, motivo){
+  if(!desc) return el("div", null, "(sem descrição coletada)");
+  let h = esc(desc);
+  if(motivo && motivo.skills){
+    motivo.skills.forEach(s=>{
+      if(!s.t || s.t.length < 2) return;
+      const rx = new RegExp(`(?<![a-zA-Z0-9_])(${s.t.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})(?![a-zA-Z0-9_])`, 'gi');
+      h = h.replace(rx, '<mark class="hl-skill">$1</mark>');
+    });
+  }
+  if(motivo && motivo.lacunas){
+    motivo.lacunas.forEach(l=>{
+      if(!l.t || l.t.length < 2) return;
+      const rx = new RegExp(`(?<![a-zA-Z0-9_])(${l.t.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})(?![a-zA-Z0-9_])`, 'gi');
+      h = h.replace(rx, '<mark class="hl-lacuna">$1</mark>');
+    });
+  }
+  h = h.replace(/(?:^|\n)([ \t\-•*]*(?:requisitos?|qualifica[cç][oõ]es?|o que esperamos|diferenciais?|desej[aá]vei?s?|responsabilidades?|atividades?)[^\n:]{0,35}?:)/gi,
+    '\n<mark class="hl-sec">$1</mark>');
+  const d = document.createElement("div");
+  d.style.whiteSpace = "pre-wrap";
+  d.style.lineHeight = "1.65";
+  d.innerHTML = h;
+  return d;
+}
+
 function montaMotivo(m,pct){
   const box=el("div","motivo");box.append(el("h4",null,`Por que ${pct}?`));
   const l1=el("div","lin");l1.append(`Habilidades suas que a vaga pede: ${m.cobertura}% · título: ${m.titulo} `);box.append(l1);
@@ -281,8 +448,94 @@ async function carregaSaude(){
       el("span",null,{ok:"ok",alerta:"atenção",erro:"com problema",nunca:"nunca rodou",pausa:"em pausa"}[f.estado]+(f.quando&&f.estado!=="pausa"?" · "+ago(f.quando):"")));
     $("#saude").append(c);
     if(f.estado==="alerta"||f.estado==="erro"||f.estado==="pausa"){
-      $("#avisos").append(el("div","aviso-fonte "+(f.estado==="erro"?"erro":"alerta"),`${f.rotulo}: ${f.mensagem}`+(f.ultimo_ok?` (última execução sem problemas: ${ago(f.ultimo_ok)})`:"")))}
+      const dv=el("div","aviso-fonte "+(f.estado==="erro"?"erro":"alerta"),`${f.rotulo}: ${f.mensagem}`+(f.ultimo_ok?` (última execução sem problemas: ${ago(f.ultimo_ok)})`:""));
+      if(f.estado==="pausa"){
+        const bt=el("button","mini","Retomar agora");
+        bt.style.marginLeft="10px";
+        bt.onclick=async()=>{await api(`/api/pausa/${k}/limpar`,"POST");toast(`Pausa de ${f.rotulo} removida`);carregaSaude()};
+        dv.append(" ",bt);
+      }
+      $("#avisos").append(dv);
+    }
   })}
+
+/* estatisticas e tendencias */
+async function carregaStats(){
+  try {
+    const data = await api("/api/analytics");
+    const sal = data.salarios;
+    const fmtMoeda = val => val ? "R$ " + Math.round(val).toLocaleString("pt-BR") : "—";
+    $("#statsKpis").innerHTML = `
+      <div class="kpi"><b>${data.total_vagas}</b><span>Total de Vagas Analisadas</span></div>
+      <div class="kpi"><b>${fmtMoeda(sal.media_pj)}</b><span>Média Estimada PJ</span></div>
+      <div class="kpi"><b>${fmtMoeda(sal.media_clt)}</b><span>Média Estimada CLT</span></div>
+      <div class="kpi"><b>${sal.pct_com_salario}%</b><span>Com Salário Divulgado (${sal.com_salario} vagas)</span></div>
+    `;
+
+    const maxTech = Math.max(...data.top_tecnologias.map(t=>t.count), 1);
+    $("#statTechs").innerHTML = data.top_tecnologias.map(t=>`
+      <div class="bar-row">
+        <span class="bar-label" title="${esc(t.tech)}">${esc(t.tech)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((t.count/maxTech)*100)}%;background:linear-gradient(90deg,var(--pri),#38ef7d)"></div></div>
+        <span class="bar-val">${t.count} (${t.pct}%)</span>
+      </div>
+    `).join("");
+
+    const maxContrato = Math.max(...data.contratos.map(c=>c.count), 1);
+    const corContrato = {
+      "PJ": "#7e3af2",
+      "CLT": "#0a66c2",
+      "CLT / PJ": "#e65100",
+      "Cooperado": "#00a868",
+      "Não informado": "var(--mut)"
+    };
+    $("#statContratos").innerHTML = data.contratos.map(c=>`
+      <div class="bar-row">
+        <span class="bar-label">${esc(c.tipo)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((c.count/maxContrato)*100)}%;background:${corContrato[c.tipo]||'var(--pri)'}"></div></div>
+        <span class="bar-val">${c.count} (${c.pct}%)</span>
+      </div>
+    `).join("");
+
+    const maxSen = Math.max(...data.senioridades.map(s=>s.count), 1);
+    const corSen = {
+      "Júnior / Estágio": "#2ee59d",
+      "Pleno": "#0088ff",
+      "Sênior / Especialista": "#9d4edd",
+      "Não especificado": "var(--mut)"
+    };
+    $("#statSenioridades").innerHTML = data.senioridades.map(s=>`
+      <div class="bar-row">
+        <span class="bar-label">${esc(s.nivel)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((s.count/maxSen)*100)}%;background:${corSen[s.nivel]||'var(--pri)'}"></div></div>
+        <span class="bar-val">${s.count} (${s.pct}%)</span>
+      </div>
+    `).join("");
+
+    $("#statEmpresas").innerHTML = data.top_empresas.map((e, idx)=>`
+      <div class="company-item" onclick="$('[data-aba=vagas]').click();$('#fQ').value='${esc(e.empresa)}';carregaVagas();" title="Clique para filtrar vagas desta empresa">
+        <span><b>#${idx+1}</b> ${esc(e.empresa)}</span>
+        <span class="tag sim">${e.count} vaga(s)</span>
+      </div>
+    `).join("") || '<div class="vazio">Sem dados de empresas suficientes.</div>';
+
+    $("#statFontes").innerHTML = `
+      <table>
+        <thead><tr><th>Fonte</th><th>Total de Vagas</th><th>Média de Match</th><th>Vagas Relevantes</th></tr></thead>
+        <tbody>` + data.fontes.map(f=>`
+          <tr class="f-${esc(f.fonte)}">
+            <td><span class="fonte">${esc(fontes[f.fonte]||f.fonte)}</span></td>
+            <td><b>${f.total}</b></td>
+            <td><span class="badge ${classeMatch(f.media_match)}">${f.media_match}%</span></td>
+            <td>${f.relevantes}</td>
+          </tr>
+        `).join("") + `</tbody>
+      </table>
+    `;
+  } catch(err) {
+    toast("Erro ao carregar estatísticas: " + err.message);
+  }
+}
 
 /* execucoes */
 async function carregaExecs(){
@@ -297,12 +550,12 @@ async function carregaExecs(){
 /* config */
 async function carregaCfg(){
   const c=await api("/api/config");
-  $("#cTermos").value=c.termos_busca.join("\n");$("#cTermosLi").value=c.termos_linkedin.join("\n");
-  $("#cDias").value=c.apenas_ultimos_dias;$("#cMin").value=c.pontuacao_minima;$("#cGd").checked=c.glassdoor_ativa;$("#cLi").checked=c.linkedin_ativa;
+  $("#cTermos").value=c.termos_busca.join("\n");$("#cTermosLi").value=c.termos_linkedin.join("\n");$("#cTermosGp").value=(c.termos_gupy||[]).join("\n");$("#cTermosProg").value=(c.termos_programathor||[]).join("\n");
+  $("#cDias").value=c.apenas_ultimos_dias;$("#cMin").value=c.pontuacao_minima;$("#cGd").checked=c.glassdoor_ativa;$("#cLi").checked=c.linkedin_ativa;$("#cGp").checked=c.gupy_ativa;$("#cProg").checked=c.programathor_ativa;
 }
 $("#salvarCfg").onclick=async()=>{
-  try{await api("/api/config","PUT",{termos_busca:$("#cTermos").value.split("\n"),termos_linkedin:$("#cTermosLi").value.split("\n"),
-    pontuacao_minima:+$("#cMin").value,apenas_ultimos_dias:+$("#cDias").value,glassdoor_ativa:$("#cGd").checked,linkedin_ativa:$("#cLi").checked});
+  try{await api("/api/config","PUT",{termos_busca:$("#cTermos").value.split("\n"),termos_linkedin:$("#cTermosLi").value.split("\n"),termos_gupy:$("#cTermosGp").value.split("\n"),termos_programathor:$("#cTermosProg").value.split("\n"),
+    pontuacao_minima:+$("#cMin").value,apenas_ultimos_dias:+$("#cDias").value,glassdoor_ativa:$("#cGd").checked,linkedin_ativa:$("#cLi").checked,gupy_ativa:$("#cGp").checked,programathor_ativa:$("#cProg").checked});
     toast("Configurações salvas");carregaCfg()}catch(e){toast(e.message)}
 };
 
@@ -312,7 +565,7 @@ $("#reav").onclick=async()=>{try{const r=await api("/api/reavaliar","POST");toas
 $("#btnRodar").onclick=e=>{e.stopPropagation();$("#menuRodar").classList.toggle("on")};
 document.addEventListener("click",e=>{if(!e.target.closest("#menuRodar"))$("#menuRodar").classList.remove("on")});
 $("#confRodar").onclick=async()=>{
-  const sel=[...document.querySelectorAll("#menuFontes input:checked")].map(i=>i.value);
+  const sel=[...document.querySelectorAll("#menuFontes .chk-fonte:checked")].map(i=>i.value);
   if(!sel.length)return toast("Escolha ao menos uma fonte");
   $("#menuRodar").classList.remove("on");
   try{await api("/api/rodar","POST",{fontes:sel});toast("Execução iniciada")}catch(e){toast(e.message)}

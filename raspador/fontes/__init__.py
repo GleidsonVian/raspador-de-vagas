@@ -5,9 +5,16 @@
 Para adicionar um site novo: crie um arquivo aqui com uma classe assim e registre em FONTES.
 """
 from .glassdoor import Glassdoor
+from .gupy import Gupy
 from .linkedin import LinkedIn
+from .programathor import Programathor
 
-FONTES = {Glassdoor.NOME: Glassdoor, LinkedIn.NOME: LinkedIn}
+FONTES = {
+    Glassdoor.NOME: Glassdoor,
+    LinkedIn.NOME: LinkedIn,
+    Gupy.NOME: Gupy,
+    Programathor.NOME: Programathor,
+}
 
 
 class Bloqueio(Exception):

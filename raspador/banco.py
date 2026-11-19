@@ -12,6 +12,10 @@ COLUNAS_VAGAS = {
     "match": "INTEGER DEFAULT 0",
     "notificada": "INTEGER DEFAULT 0",
     "motivo": "TEXT",                      # JSON com o detalhe do calculo do match (pontuacao.explicar)
+    "contrato": "TEXT DEFAULT ''",
+    "salario": "TEXT DEFAULT ''",
+    "duplicada_de": "TEXT DEFAULT ''",
+    "encerrada": "INTEGER DEFAULT 0",
 }
 COLUNAS_EXEC = {"alerta": "TEXT", "desc_vazias": "INTEGER DEFAULT 0"}
 
@@ -81,9 +85,9 @@ def ja_conhecida(con, vid: str) -> bool:
 
 def inserir(con, v: dict) -> None:
     con.execute(
-        "INSERT INTO vagas(id,fonte,titulo,empresa,nota,idade_dias,local,easy,link,termo,score,descricao,visto_em,match,motivo,status,excluida)"
-        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'nova',0)",
+        "INSERT INTO vagas(id,fonte,titulo,empresa,nota,idade_dias,local,easy,link,termo,score,descricao,visto_em,match,motivo,status,excluida,contrato,salario)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'nova',0,?,?)",
         (v["id"], v["fonte"], v["titulo"], v["empresa"], v.get("nota"), v.get("idade_dias"), v.get("local", ""),
          int(bool(v.get("easy"))), v.get("link", ""), v.get("termo", ""), v["score"], v.get("descricao", ""),
-         agora(), v["match"], v.get("motivo", "")))
+         agora(), v["match"], v.get("motivo", ""), v.get("contrato", ""), v.get("salario", "")))
     con.commit()
