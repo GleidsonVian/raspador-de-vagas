@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raspador de vagas</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%231a5fb4'/%3E%3Ccircle cx='7' cy='7' r='3.2' fill='none' stroke='white' stroke-width='1.6'/%3E%3Cpath d='M9.5 9.5 13 13' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --txt:#1a2230; --mut:#667085; --bd:#e2e5ea; --pri:#1a5fb4; --pri-t:#fff;
+  --ok:#157f4b; --okb:#e4f5ec; --mid:#9a6700; --midb:#fff3d6; --low:#667085; --lowb:#eef0f3; --bad:#b42318; --badb:#fde8e6;
+  --f-glassdoor:#7e3af2; --f-linkedin:#0a66c2; /* cor de cada fonte */
+}
+@media (prefers-color-scheme:dark){:root:not([data-tema="claro"]){
+  --bg:#12161d; --card:#1b212b; --txt:#e8ecf2; --mut:#98a2b3; --bd:#2b3340; --pri:#5b9cf0; --pri-t:#0b1220;
+  --ok:#5fd09a; --okb:#16352a; --mid:#f2c14e; --midb:#3a2f12; --low:#98a2b3; --lowb:#252c38; --bad:#ff8a80; --badb:#3d1a18; --f-glassdoor:#b794f6; --f-linkedin:#6aa9f0;}}
+:root[data-tema="escuro"]{
+  --bg:#12161d; --card:#1b212b; --txt:#e8ecf2; --mut:#98a2b3; --bd:#2b3340; --pri:#5b9cf0; --pri-t:#0b1220;
+  --ok:#5fd09a; --okb:#16352a; --mid:#f2c14e; --midb:#3a2f12; --low:#98a2b3; --lowb:#252c38; --bad:#ff8a80; --badb:#3d1a18; --f-glassdoor:#b794f6; --f-linkedin:#6aa9f0;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+h1{font-size:17px;margin:0;font-weight:650;letter-spacing:-.01em}
+.sp{flex:1}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:var(--card);padding:6px 12px;border-radius:7px}
+button:hover{border-color:var(--pri)}
+button.pri{background:var(--pri);border-color:var(--pri);color:var(--pri-t);font-weight:600}
+button.pri:disabled{opacity:.5;cursor:default}
+button.perigo{color:var(--bad)}
+button.mini{padding:3px 8px;font-size:12px}
+input,select,textarea{border:1px solid var(--bd);background:var(--card);border-radius:7px;padding:6px 9px}
+main{max-width:1200px;margin:0 auto;padding:18px 20px 60px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
+.kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.kpi span{color:var(--mut);font-size:12px}
+nav.abas{display:flex;gap:4px;border-bottom:1px solid var(--bd);margin-bottom:14px}
+nav.abas button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:8px 14px;color:var(--mut)}
+nav.abas button.ativa{color:var(--txt);border-color:var(--pri);font-weight:600}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.filtros label{color:var(--mut);font-size:13px;display:flex;gap:5px;align-items:center}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+th{text-align:left;font-size:12px;color:var(--mut);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--bd);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tr.vaga:hover{background:color-mix(in srgb,var(--pri) 5%,transparent)}
+td.titulo a{color:var(--txt);font-weight:600;text-decoration:none}td.titulo a:hover{color:var(--pri);text-decoration:underline}
+td.titulo small{display:block;color:var(--mut)}
+.badge{display:inline-block;min-width:46px;text-align:center;padding:2px 8px;border-radius:999px;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+.b-alto{background:var(--okb);color:var(--ok)}.b-medio{background:var(--midb);color:var(--mid)}.b-baixo{background:var(--lowb);color:var(--low)}
+.tag{font-size:12px;padding:1px 7px;border-radius:5px;background:var(--lowb);color:var(--mut)}
+.tag.sim{background:var(--okb);color:var(--ok)}
+/* cor por fonte: etiqueta, faixa lateral da linha e chip de saude */
+.f-glassdoor{--fc:var(--f-glassdoor)}.f-linkedin{--fc:var(--f-linkedin)}
+.fonte{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;color:var(--fc,var(--mut));
+  background:color-mix(in srgb,var(--fc,var(--mut)) 16%,transparent);border:1px solid color-mix(in srgb,var(--fc,var(--mut)) 40%,transparent)}
+tr.vaga td:first-child{box-shadow:inset 4px 0 0 var(--fc,transparent)}
+.saude{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--bd);background:var(--card)}
+.chip b{color:var(--fc,var(--txt))}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--low)}
+.dot.ok{background:var(--ok)}.dot.alerta,.dot.pausa{background:var(--mid)}.dot.erro{background:var(--bad)}
+.aviso-fonte{font-size:12px;padding:6px 10px;border-radius:8px;margin-bottom:8px}
+.aviso-fonte.alerta{background:var(--midb);color:var(--mid)}.aviso-fonte.erro{background:var(--badb);color:var(--bad)}
+.motivo{white-space:normal;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--bd)}
+.motivo h4{margin:0 0 6px;font-size:13px}.motivo .lin{margin:4px 0;color:var(--mut);font-size:13px}
+.mchip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;margin:2px 3px 2px 0}
+.mchip.skill{background:var(--okb);color:var(--ok)}.mchip.dif{opacity:.65;font-style:italic}
+.mchip.lac{background:var(--badb);color:var(--bad)}.mchip.aj{background:var(--midb);color:var(--mid)}
+.acoes{white-space:nowrap;display:flex;gap:5px}
+tr.desc td{background:var(--bg);white-space:pre-wrap;color:var(--txt);max-height:300px}
+.vazio{padding:40px;text-align:center;color:var(--mut);background:var(--card);border:1px dashed var(--bd);border-radius:10px}
+.progresso{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:none}
+.progresso.on{display:block}
+.barra{height:6px;background:var(--lowb);border-radius:4px;overflow:hidden;margin:6px 0}
+.barra i{display:block;height:100%;background:var(--pri);transition:width .4s}
+pre.log{margin:6px 0 0;max-height:170px;overflow:auto;font:12px/1.4 ui-monospace,Consolas,monospace;background:var(--bg);padding:8px;border-radius:7px;white-space:pre-wrap}
+.pill{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--lowb);color:var(--mut)}
+.pill.on{background:var(--okb);color:var(--ok)}
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cfg{grid-template-columns:1fr}.hide-m{display:none}}
+.cfg textarea{width:100%;min-height:260px;font:13px ui-monospace,Consolas,monospace}
+.cfg h3{margin:0 0 6px;font-size:14px}.cfg p{margin:0 0 6px;color:var(--mut);font-size:12px}
+.linha{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0;align-items:center}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--txt);max-width:480px;padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin:0 0 8px}dialog .op{border:1px solid var(--bd);border-radius:9px;padding:10px 12px;margin:10px 0}
+dialog .op p{margin:4px 0 8px;color:var(--mut);font-size:13px}
+.menu{position:absolute;right:20px;top:54px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:9}
+.menu.on{display:block}.menu label{display:flex;gap:7px;padding:3px 0}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--txt);color:var(--bg);padding:8px 14px;border-radius:8px;display:none;z-index:20}
+</style>
+</head>
+<body>
+<header>
+  <h1>Raspador de vagas</h1>
+  <span id="pill" class="pill">parado</span>
+  <span class="sp"></span>
+  <button id="tema" title="Alternar tema">◐</button>
+  <button id="btnParar" class="perigo" style="display:none">Parar</button>
+  <button id="btnRodar" class="pri">Rodar agora ▾</button>
+</header>
+<div class="menu" id="menuRodar">
+  <div id="menuFontes"></div>
+  <div style="margin-top:8px"><button class="pri" id="confRodar">Iniciar</button></div>
+</div>
+
+<main>
+  <div class="progresso" id="prog">
+    <div id="progTxt"></div>
+    <div class="barra"><i id="progBar" style="width:0"></i></div>
+    <pre class="log" id="log"></pre>
+  </div>
+
+  <div id="avisos"></div>
+  <div class="saude" id="saude"></div>
+  <div class="cards" id="cards"></div>
+
+  <nav class="abas">
+    <button class="ativa" data-aba="vagas">Vagas</button>
+    <button data-aba="exec">Execuções</button>
+    <button data-aba="cfg">Configurações</button>
+  </nav>
+
+  <section id="aba-vagas">
+    <div class="filtros">
+      <input id="fQ" type="search" placeholder="Buscar cargo ou empresa" style="min-width:210px">
+      <select id="fFonte"><option value="">Todas as fontes</option></select>
+      <select id="fStatus">
+        <option value="">Qualquer status</option><option value="nova">Nova</option>
+        <option value="interessado">Interessado</option><option value="candidatado">Candidatado</option>
+        <option value="descartado">Descartado</option>
+      </select>
+      <label>Match mín. <input id="fMatch" type="number" min="0" max="100" value="0" style="width:64px">%</label>
+      <label><input id="fTodas" type="checkbox"> incluir não relevantes</label>
+      <label><input id="fExc" type="checkbox"> ver excluídas</label>
+      <span class="sp"></span><span id="contagem" style="color:var(--mut)"></span>
+    </div>
+    <div id="tabela"></div>
+  </section>
+
+  <section id="aba-exec" hidden><div id="execs"></div></section>
+
+  <section id="aba-cfg" hidden>
+    <div class="cfg">
+      <div><h3>Termos de busca (Glassdoor)</h3><p>Um por linha, em ordem de prioridade.</p><textarea id="cTermos"></textarea></div>
+      <div><h3>Termos de busca (LinkedIn)</h3><p>Poucos termos: o LinkedIn limita acessos. Um por linha.</p><textarea id="cTermosLi"></textarea></div>
+    </div>
+    <div class="linha">
+      <label>Só vagas dos últimos <input id="cDias" type="number" min="1" max="90" style="width:70px"> dias</label>
+      <label>Pontuação mínima de relevância <input id="cMin" type="number" min="0" max="100" style="width:70px"></label>
+      <label><input id="cGd" type="checkbox"> Glassdoor ativo</label>
+      <label><input id="cLi" type="checkbox"> LinkedIn ativo</label>
+      <button class="pri" id="salvarCfg">Salvar configurações</button>
+      <button id="reav" title="Recalcula o match de todas as vagas salvas com as regras atuais">Reavaliar vagas salvas</button>
+    </div>
+    <p style="color:var(--mut);font-size:12px">As regras de pontuação (suas habilidades, ferramentas com menos prioridade, bloqueios) ficam em <code>config.json</code> (depois de editar, use "Reavaliar vagas salvas").</p>
+  </section>
+</main>
+
+<dialog id="dlgExcluir">
+  <h3>Excluir vaga</h3>
+  <div id="dlgTitulo" style="color:var(--mut)"></div>
+  <div class="op"><b>Ocultar</b><p>Some da lista, mas o raspador lembra dela e <b>não a coleta de novo</b>. Dá para restaurar em "ver excluídas".</p>
+    <button class="pri" id="exOcultar">Ocultar vaga</button></div>
+  <div class="op"><b>Apagar definitivamente</b><p>Remove do banco. Se o site ainda listar a vaga, ela pode <b>voltar como nova</b> numa próxima busca.</p>
+    <button class="perigo" id="exApagar">Apagar definitivamente</button></div>
+  <div style="text-align:right"><button id="exCancelar">Cancelar</button></div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const api=async(url,metodo="GET",corpo)=>{
+  const r=await fetch(url,{method:metodo,headers:{"Content-Type":"application/json","X-Painel":"1"},body:corpo?JSON.stringify(corpo):undefined});
+  if(!r.ok){let m=r.statusText;try{m=(await r.json()).detail||m}catch{}throw new Error(m)}
+  return r.json();
+};
+const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display="none",3200)};
+const fmtData=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};
+let fontes={},rodandoAntes=false,idExcluir=null;
+
+/* tema */
+const aplicaTema=t=>{if(t)document.documentElement.dataset.tema=t;else delete document.documentElement.dataset.tema};
+try{aplicaTema(localStorage.getItem("tema"))}catch{}
+$("#tema").onclick=()=>{const atual=document.documentElement.dataset.tema||(matchMedia("(prefers-color-scheme:dark)").matches?"escuro":"claro");
+  const novo=atual==="escuro"?"claro":"escuro";aplicaTema(novo);try{localStorage.setItem("tema",novo)}catch{}};
+
+/* abas */
+document.querySelectorAll("nav.abas button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav.abas button").forEach(x=>x.classList.toggle("ativa",x===b));
+  ["vagas","exec","cfg"].forEach(a=>$("#aba-"+a).hidden=a!==b.dataset.aba);
+  if(b.dataset.aba==="exec")carregaExecs(); if(b.dataset.aba==="cfg")carregaCfg();
+});
+
+/* resumo / cards */
+async function carregaResumo(){
+  const r=await api("/api/resumo");fontes=r.fontes;
+  const s=r.por_status,tot=Object.values(s).reduce((a,b)=>a+b,0);
+  $("#cards").innerHTML=[["Vagas relevantes",tot],["Novas",s.nova||0],["Interessado",s.interessado||0],["Candidatado",s.candidatado||0],["Lidas no total",r.lidas_total]]
+    .map(([t,n])=>`<div class="kpi"><b>${n}</b><span>${t}</span></div>`).join("");
+  const sel=$("#fFonte"),atual=sel.value;
+  sel.innerHTML='<option value="">Todas as fontes</option>'+Object.entries(fontes).map(([k,v])=>`<option value="${esc(k)}">${esc(v)}</option>`).join("");
+  sel.value=atual;
+  $("#menuFontes").innerHTML=Object.entries(fontes).map(([k,v])=>`<label><input type="checkbox" value="${esc(k)}" checked> ${esc(v)}</label>`).join("");
+}
+
+/* vagas */
+const classeMatch=m=>m>=70?"b-alto":m>=45?"b-medio":"b-baixo";
+async function carregaVagas(){
+  const p=new URLSearchParams({fonte:$("#fFonte").value,status:$("#fStatus").value,q:$("#fQ").value,
+    min_match:$("#fMatch").value||0,excluidas:$("#fExc").checked,todas:$("#fTodas").checked});
+  const v=await api("/api/vagas?"+p);
+  $("#contagem").textContent=v.length+" vaga(s)";
+  if(!v.length){$("#tabela").innerHTML='<div class="vazio">Nenhuma vaga com esses filtros. Clique em <b>Rodar agora</b> para buscar.</div>';return}
+  $("#tabela").innerHTML=`<table><thead><tr><th>Match</th><th>Vaga</th><th class="hide-m">Fonte</th><th class="hide-m">Candidatura Rápida</th><th class="hide-m">Capturada em</th><th>Status</th><th></th></tr></thead><tbody>`+
+  v.map(x=>{
+    const href=/^https?:\/\//.test(x.link||"")?esc(x.link):"#";
+    const st=["nova","interessado","candidatado","descartado"].map(s=>`<option value="${s}" ${x.status===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("");
+    return `<tr class="vaga f-${esc(x.fonte)}" data-id="${esc(x.id)}"><td><span class="badge ${classeMatch(x.match)}" title="Clique em Descrição para ver por que deu ${x.match}%">${x.match}%</span></td>
+      <td class="titulo"><a href="${href}" target="_blank" rel="noopener noreferrer">${esc(x.titulo)}</a><small>${esc(x.empresa)}${x.nota?` · ★ ${x.nota}`:""} · ${esc(x.local)}</small></td>
+      <td class="hide-m"><span class="fonte">${esc(fontes[x.fonte]||x.fonte)}</span></td>
+      <td class="hide-m"><span class="tag ${x.easy?"sim":""}">${x.easy?"Sim":"Não"}</span></td>
+      <td class="hide-m">${fmtData(x.capturada_em)}</td>
+      <td><select class="st">${st}</select></td>
+      <td class="acoes"><button class="mini ver">Descrição</button>${x.excluida?'<button class="mini rest">Restaurar</button>':'<button class="mini perigo exc">Excluir</button>'}</td></tr>`}).join("")+"</tbody></table>";
+}
+$("#tabela").addEventListener("change",async e=>{
+  if(!e.target.classList.contains("st"))return;
+  const id=e.target.closest("tr").dataset.id;
+  try{await api(`/api/vagas/${encodeURIComponent(id)}/status`,"POST",{status:e.target.value});toast("Status atualizado");carregaResumo()}catch(err){toast(err.message)}
+});
+$("#tabela").addEventListener("click",async e=>{
+  const tr=e.target.closest("tr.vaga");if(!tr)return;const id=tr.dataset.id;
+  if(e.target.classList.contains("ver")){
+    const prox=tr.nextElementSibling;
+    if(prox&&prox.classList.contains("desc")){prox.remove();return}
+    try{const d=await api(`/api/vagas/${encodeURIComponent(id)}/descricao`);
+      const n=document.createElement("tr");n.className="desc";const td=document.createElement("td");td.colSpan=7;
+      if(d.motivo)td.append(montaMotivo(d.motivo,tr.querySelector(".badge").textContent));
+      const corpo=document.createElement("div");corpo.style.whiteSpace="pre-wrap";
+      corpo.textContent=d.descricao||"(sem descrição coletada)";td.append(corpo);n.append(td);tr.after(n)}catch(err){toast(err.message)}
+  }else if(e.target.classList.contains("exc")){
+    idExcluir=id;$("#dlgTitulo").textContent=tr.querySelector("td.titulo a").textContent;$("#dlgExcluir").showModal();
+  }else if(e.target.classList.contains("rest")){
+    try{await api(`/api/vagas/${encodeURIComponent(id)}/restaurar`,"POST");toast("Vaga restaurada");recarrega()}catch(err){toast(err.message)}
+  }
+});
+const excluir=async def=>{try{await api(`/api/vagas/${encodeURIComponent(idExcluir)}/excluir`,"POST",{definitivo:def});
+  $("#dlgExcluir").close();toast(def?"Vaga apagada":"Vaga ocultada");recarrega()}catch(err){toast(err.message)}};
+$("#exOcultar").onclick=()=>excluir(false);
+$("#exApagar").onclick=()=>{if(confirm("Apagar definitivamente? Isso não pode ser desfeito."))excluir(true)};
+$("#exCancelar").onclick=()=>$("#dlgExcluir").close();
+["fFonte","fStatus","fMatch","fTodas","fExc"].forEach(i=>$("#"+i).addEventListener("change",carregaVagas));
+let deb;$("#fQ").addEventListener("input",()=>{clearTimeout(deb);deb=setTimeout(carregaVagas,250)});
+const recarrega=()=>{carregaResumo();carregaVagas();carregaSaude()};
+
+/* por que esse match? (montado com textContent: titulos/descricoes vem de terceiros) */
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function montaMotivo(m,pct){
+  const box=el("div","motivo");box.append(el("h4",null,`Por que ${pct}?`));
+  const l1=el("div","lin");l1.append(`Habilidades suas que a vaga pede: ${m.cobertura}% · título: ${m.titulo} `);box.append(l1);
+  if(m.skills.length){const l=el("div","lin");l.append("Casaram: ");m.skills.forEach(s=>l.append(el("span","mchip skill"+(s.dif?" dif":""),s.t+(s.dif?" (diferencial)":""))));box.append(l)}
+  if(m.lacunas.length){const l=el("div","lin");l.append("Você não tem: ");m.lacunas.forEach(s=>l.append(el("span","mchip lac"+(s.dif?" dif":""),`−${s.pen} ${s.t}`+(s.dif?" (diferencial)":""))));box.append(l)}
+  const aj=[];Object.entries(m.nivel||{}).forEach(([k,v])=>aj.push(`nível ${k} ${v>0?"+":"−"}${Math.abs(v)}`));
+  if(m.fraca)aj.push(`${m.fraca.t.join(", ")} −${m.fraca.pen} (${m.fraca.onde==="titulo"?"no título":"na descrição"})`);
+  if(aj.length){const l=el("div","lin");l.append("Ajustes: ");aj.forEach(a=>l.append(el("span","mchip aj",a)));box.append(l)}
+  if(m.secoes&&m.secoes.dif||m.secoes&&m.secoes.ign){const l=el("div","lin","Diferenciais pesam menos e benefícios/sobre a empresa não contam.");box.append(l)}
+  return box}
+
+/* saude das fontes */
+const ago=iso=>{if(!iso)return"";const min=Math.max(0,Math.round((Date.now()-new Date(iso))/60000));
+  return min<60?`há ${min} min`:min<1440?`há ${Math.round(min/60)} h`:`há ${Math.round(min/1440)} d`};
+async function carregaSaude(){
+  let s;try{s=await api("/api/saude")}catch{return}
+  $("#saude").innerHTML="";$("#avisos").innerHTML="";
+  Object.entries(s).forEach(([k,f])=>{
+    const c=el("span","chip f-"+k);c.title=f.mensagem||"";
+    c.append(el("i","dot "+(f.estado==="nunca"?"":f.estado)),el("b",null,f.rotulo),
+      el("span",null,{ok:"ok",alerta:"atenção",erro:"com problema",nunca:"nunca rodou",pausa:"em pausa"}[f.estado]+(f.quando&&f.estado!=="pausa"?" · "+ago(f.quando):"")));
+    $("#saude").append(c);
+    if(f.estado==="alerta"||f.estado==="erro"||f.estado==="pausa"){
+      $("#avisos").append(el("div","aviso-fonte "+(f.estado==="erro"?"erro":"alerta"),`${f.rotulo}: ${f.mensagem}`+(f.ultimo_ok?` (última execução sem problemas: ${ago(f.ultimo_ok)})`:"")))}
+  })}
+
+/* execucoes */
+async function carregaExecs(){
+  const e=await api("/api/execucoes");
+  $("#execs").innerHTML=e.length?`<table><thead><tr><th>Início</th><th>Fonte</th><th>Termos</th><th>Lidas</th><th>Novas</th><th>Relevantes</th><th>Duração</th><th>Resultado</th></tr></thead><tbody>`+
+    e.map(x=>{const dur=x.fim?Math.max(1,Math.round((new Date(x.fim)-new Date(x.inicio))/60000))+" min":"…";
+      return `<tr class="f-${esc(x.fonte)}"><td>${fmtData(x.inicio)}</td><td><span class="fonte">${esc(fontes[x.fonte]||x.fonte)}</span></td><td>${x.termos}</td><td>${x.lidas}</td><td>${x.novas}</td><td>${x.relevantes}</td><td>${dur}</td>
+      <td>${x.erro?`<span class="tag" style="background:var(--badb);color:var(--bad)">${esc(x.erro)}</span>`:x.alerta?`<span class="tag" style="background:var(--midb);color:var(--mid)">⚠ ${esc(x.alerta)}</span>`:(x.fim?'<span class="tag sim">ok</span>':"em andamento")}</td></tr>`}).join("")+"</tbody></table>"
+    :'<div class="vazio">Nenhuma execução registrada ainda.</div>';
+}
+
+/* config */
+async function carregaCfg(){
+  const c=await api("/api/config");
+  $("#cTermos").value=c.termos_busca.join("\n");$("#cTermosLi").value=c.termos_linkedin.join("\n");
+  $("#cDias").value=c.apenas_ultimos_dias;$("#cMin").value=c.pontuacao_minima;$("#cGd").checked=c.glassdoor_ativa;$("#cLi").checked=c.linkedin_ativa;
+}
+$("#salvarCfg").onclick=async()=>{
+  try{await api("/api/config","PUT",{termos_busca:$("#cTermos").value.split("\n"),termos_linkedin:$("#cTermosLi").value.split("\n"),
+    pontuacao_minima:+$("#cMin").value,apenas_ultimos_dias:+$("#cDias").value,glassdoor_ativa:$("#cGd").checked,linkedin_ativa:$("#cLi").checked});
+    toast("Configurações salvas");carregaCfg()}catch(e){toast(e.message)}
+};
+
+$("#reav").onclick=async()=>{try{const r=await api("/api/reavaliar","POST");toast(r.vagas+" vagas reavaliadas");recarrega()}catch(e){toast(e.message)}};
+
+/* execucao: rodar / parar / acompanhar */
+$("#btnRodar").onclick=e=>{e.stopPropagation();$("#menuRodar").classList.toggle("on")};
+document.addEventListener("click",e=>{if(!e.target.closest("#menuRodar"))$("#menuRodar").classList.remove("on")});
+$("#confRodar").onclick=async()=>{
+  const sel=[...document.querySelectorAll("#menuFontes input:checked")].map(i=>i.value);
+  if(!sel.length)return toast("Escolha ao menos uma fonte");
+  $("#menuRodar").classList.remove("on");
+  try{await api("/api/rodar","POST",{fontes:sel});toast("Execução iniciada")}catch(e){toast(e.message)}
+  poll();
+};
+$("#btnParar").onclick=async()=>{await api("/api/parar","POST");toast("Parando ao fim do termo atual…")};
+async function poll(){
+  let e;try{e=await api("/api/estado")}catch{return}
+  $("#pill").textContent=e.rodando?"rodando":"parado";$("#pill").classList.toggle("on",e.rodando);
+  $("#btnParar").style.display=e.rodando?"":"none";$("#btnRodar").disabled=e.rodando;
+  $("#prog").classList.toggle("on",e.rodando||e.log.length>0&&rodandoAntes);
+  if(e.rodando||rodandoAntes){
+    const pct=e.total?Math.round(100*e.feito/e.total):0;
+    $("#progTxt").textContent=e.rodando?`${e.fonte||"…"} · ${e.termo||""} — ${e.feito}/${e.total} termos · ${e.relevantes} relevantes novas`:"Execução concluída";
+    $("#progBar").style.width=(e.rodando?pct:100)+"%";
+    const L=$("#log"),fim=L.scrollTop+L.clientHeight>=L.scrollHeight-8;L.textContent=e.log.join("\n");if(fim)L.scrollTop=L.scrollHeight;
+  }
+  if(rodandoAntes&&!e.rodando){recarrega();toast("Execução concluída")}
+  rodandoAntes=e.rodando;
+  setTimeout(poll,e.rodando?1500:6000);
+}
+carregaResumo().then(carregaVagas);carregaSaude();poll();
+</script>
+</body>
+</html>

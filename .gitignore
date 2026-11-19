@@ -1,0 +1,29 @@
+# --- dados e sessoes PESSOAIS: nunca versionar ---
+
+# perfil do Edge do raspador (cookies e login do Glassdoor)
+perfil_edge/
+
+# banco de vagas coletadas
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# log e relatorios gerados
+log.txt
+novas_*.html
+raspador.lock
+
+# --- scripts locais com caminho absoluto do Python ---
+# (no repositorio use iniciar_painel.bat e executar_busca.bat)
+/run.bat
+/painel.bat
+
+# --- python / editor ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.idea/
+.vscode/
+*.tmp
