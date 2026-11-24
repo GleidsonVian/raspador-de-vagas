@@ -15,29 +15,55 @@ O raspador calcula a **aderência exata (% de Match)** de cada oportunidade ao s
 
 ## 📸 Demonstração Visual das Telas
 
+> As capturas abaixo foram geradas a partir de uma **cópia** do banco real. Os status (*Interessado*, *Candidatado*, *Descartado*) são de **demonstração** e não refletem candidaturas reais; as frases do checklist são genéricas.
+
 ### 1. Painel de Vagas & Abas de Candidatura
-Centralize o funil das suas candidaturas. Mude o status da vaga (*Nova*, *Interessado*, *Candidatado*, *Descartado*) e ela se move suavemente para a respectiva aba, sumindo da sua visão imediata para manter o foco no que importa.
+Cada fonte tem sua cor, cada vaga mostra o **% de match**, salário, tipo de contrato e o selo de candidatura rápida. Mude o status (*Nova*, *Interessado*, *Candidatado*, *Descartado*) e a vaga vai para a aba correspondente, mantendo o foco no que importa.
+
 ![Painel de Vagas](docs/painel_vagas.png)
 
-### 2. Leitura Inteligente com Destaque Colorido na Descrição
-Abra a descrição completa com 1 clique e veja de imediato:
-- 🟩 **Suas habilidades** encontradas no texto (marcadas em verde sutil).
-- 🟥 **Lacunas e requisitos faltantes** que você não tem (fundo vermelho com sublinhado ondulado).
-- 🟨 **Seções-chave** (*Requisitos, Qualificações, Diferenciais, Atividades*) destacadas em amarelo.
-- 🎯 **Card explicativo:** detalha exatamente o porquê da pontuação final da vaga.
+### 2. "Por que X%?": leitura inteligente da descrição
+Abra a descrição com 1 clique e veja:
+- 🟩 **Suas habilidades** encontradas no texto.
+- 🟥 **Lacunas** (o que você não tem) com sublinhado ondulado.
+- 🟨 **Seções-chave** (*Requisitos, Diferenciais, Atividades*) destacadas.
+- 🎯 **Card explicativo** com o cálculo exato da pontuação.
+
 ![Destaque na Descrição](docs/painel_descricao.png)
 
-### 3. Analytics & Tendências de Mercado
-Tenha uma visão estratégica do mercado de RPA e tecnologia a partir das centenas de vagas mineradas no seu banco de dados:
-- **Top 12 Tecnologias Mais Demandadas**: frequência de menção (Python, SQL, UiPath, APIs, IA/GenAI, etc.).
-- **Médias Salariais Estimadas**: comparativo real de valores médios para CLT e PJ.
-- **Distribuição de Contratos e Senioridades**: proporção de vagas para Júnior, Pleno e Sênior.
-- **Top Empresas Contratantes**: ranking com atalho clicável para filtrar as vagas da empresa.
-- **Desempenho por Plataforma**: volume total, taxa de match médio e vagas relevantes por fonte.
-![Painel de Estatísticas](docs/painel_estatisticas.png)
+### 3. Checklist da vaga
+Botão **Checklist**: o que você tem e o que falta (obrigatório × diferencial), o nível pedido versus o seu e um **resumo copiável** para usar na candidatura. As frases vêm de um `perfil_local.json` que fica só na sua máquina (fora do git).
 
-### 4. Configurações & Gestão Multi-Fonte
-Ajuste facilmente termos de busca específicos para cada plataforma, idade máxima das vagas, pontuação mínima e ative/desative fontes sem precisar editar arquivos de código.
+![Checklist](docs/painel_checklist.png)
+
+### 4. Estatísticas & "lacunas do mercado"
+Visão estratégica das vagas relevantes já coletadas: o que o mercado pede e você ainda não tem (e quanto o match já desconta disso) e seus pontos fortes mais pedidos. A aba também traz salários médios, senioridade, top empresas e desempenho por plataforma.
+
+![Estatísticas](docs/painel_estatisticas.png)
+
+### 5. Simulador "e se eu aprendesse X?"
+Marque tecnologias e veja como o ranking mudaria se você as dominasse: quantas vagas subiriam, passariam do corte e quais mais se beneficiam. Nada é gravado: é só uma simulação.
+
+![Simulador](docs/painel_simulador.png)
+
+### 6. Sugestões de ajuste pelos seus descartes
+O painel compara o que você **descarta** com o que você marca como **interessado/candidatado** e sugere penalizar tecnologias que aparecem demais nas vagas descartadas, ou revisar descontos que o seu próprio comportamento contradiz. Você aceita ou ignora cada sugestão. *(Exemplo ilustrativo.)*
+
+![Sugestões](docs/painel_sugestoes.png)
+
+### 7. Execuções e saúde das fontes
+Histórico de cada busca (termos, vagas lidas, novas, relevantes, duração), avisos de buscas vazias e **pausa automática** de uma fonte que bloqueie o acesso (429), com botão para retomar.
+
+![Execuções](docs/painel_execucoes.png)
+
+### 8. Progresso em paralelo
+Fontes por API/HTML (Gupy, Programathor) rodam **em paralelo**; as que usam navegador (Glassdoor, LinkedIn) rodam em sequência no mesmo Edge. O log mostra cada fonte com seu prefixo.
+
+![Progresso](docs/painel_progresso.png)
+
+### 9. Configurações & backups
+Termos por plataforma, pontuação mínima, habilidades, lacunas, fontes ligadas/desligadas e a lista de **backups diários** do banco, tudo sem editar arquivos.
+
 ![Configurações](docs/painel_config.png)
 
 ---
@@ -172,11 +198,7 @@ raspador-de-vagas/
 ├── .github/workflows/       # CI: roda os testes a cada push (tests.yml)
 ├── tests/                   # Testes de regressão offline (unittest)
 ├── backups/                 # (gerada) cópias diárias do vagas.db; fora do git
-├── docs/                    # Screenshots e capturas de tela da documentação
-│   ├── painel_vagas.png
-│   ├── painel_descricao.png
-│   ├── painel_estatisticas.png
-│   └── painel_config.png
+├── docs/                    # Capturas de tela usadas neste README (painel_*.png)
 └── raspador/
     ├── __main__.py          # Ponto de entrada (python -m raspador)
     ├── servidor.py          # Backend FastAPI e rotas REST
