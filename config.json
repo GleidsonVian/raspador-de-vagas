@@ -250,7 +250,9 @@
         35
       ],
       "max_descricoes_por_execucao": 8,
-      "pausa_base_horas": 3
+      "pausa_base_horas": 3,
+      "modo": "navegador",
+      "espera_verificacao_seg": 300
     },
     "gupy": {
       "ativa": true,

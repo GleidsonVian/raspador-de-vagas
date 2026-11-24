@@ -46,7 +46,7 @@ Ajuste facilmente termos de busca específicos para cada plataforma, idade máxi
 
 - 🌐 **Múltiplas Fontes Integradas**:
   - **Glassdoor**: Coleta via CDP conectando-se ao Microsoft Edge já instalado.
-  - **LinkedIn**: Coleta pública sem necessidade de login ou credenciais.
+  - **LinkedIn**: busca pública pelo **navegador real (Edge)**, sem login e **sem usar a sua conta**. O LinkedIn fica atrás do Cloudflare, que serve um desafio anti-robô a clientes HTTP simples (o `requests` leva 429 com JavaScript ofuscado, mesmo sem volume); num navegador de verdade a página abre normalmente. Se aparecer uma verificação, você a resolve na janela e o raspador espera; se o LinkedIn pedir login, a fonte é abandonada (o modal "Entre para ver mais vagas" é ignorado, nunca clicado). O modo antigo continua disponível em `fontes.linkedin.modo: "http"`.
   - **Gupy Portal**: Integração direta com a API REST pública (`portal.gupy.io`), ultra veloz.
   - **Programathor**: vagas remotas por **tecnologia** (`/jobs-python`, `/jobs-selenium`...). O site não tem busca por texto, então os termos desta fonte são nomes de tecnologia. Lê o contrato (PJ/CLT) do texto visível do card; o site não informa a data da vaga.
 - 🛡️ **Resiliência Anti-Bloqueio (HTTP 429)**:
@@ -180,6 +180,7 @@ raspador-de-vagas/
     ├── backup.py            # Backup diário com conferência e rodízio
     ├── checklist.py         # Checklist por vaga (o que tem, o que falta, o que destacar)
     ├── tecnologias.py       # Nomes e agrupamento de sinônimos (GCP / Google Cloud...)
+    ├── navegador.py         # Edge real via CDP (perfil próprio), compartilhado por Glassdoor e LinkedIn
     ├── trava.py             # Trava entre processos (arquivo raspador.lock + checagem de processo vivo no Windows)
     ├── fontes/              # Módulos independentes de scraping
     │   ├── glassdoor.py
@@ -200,7 +201,7 @@ Testes de regressão offline (sem acessar nenhum site; usam banco temporário):
 python -m unittest discover -s tests -v
 ```
 
-Cobrem o verificador de vagas (frase no rodapé não conta, respeita pausa e 429), a deduplicação, a extração de contrato, o `reavaliar`, o cálculo de match com pouca evidência, as estatísticas e as lacunas do mercado, o backup (cópia válida, rodízio, nunca na pasta de outro banco), o LinkedIn/Programathor (429 sem retry) e a ausência de `onclick` inline com dados de terceiros na tela.
+Cobrem o verificador de vagas (frase no rodapé não conta, respeita pausa e 429), a deduplicação, a extração de contrato, o `reavaliar`, o cálculo de match com pouca evidência, as estatísticas e as lacunas do mercado, o backup (cópia válida, rodízio, nunca na pasta de outro banco), o LinkedIn/Programathor (429 sem retry), o LinkedIn em modo navegador (com uma página falsa: login exigido, verificação resolvida ou não, descrição) e a ausência de `onclick` inline com dados de terceiros na tela. **Os testes nunca abrem o navegador real**: uma trava derruba qualquer teste que tente.
 
 **Integração contínua:** o workflow `.github/workflows/tests.yml` roda a mesma suíte a cada push na `main` e em pull requests, em Windows, com Python 3.10 e 3.13. Os testes não acessam sites nem dependem do seu `vagas.db`.
 

@@ -20,6 +20,37 @@ from raspador.fontes import Bloqueio  # noqa: E402
 from raspador.fontes.linkedin import LinkedIn  # noqa: E402
 from raspador.fontes.programathor import Programathor  # noqa: E402
 from raspador.pontuacao import explicar, extrair_metadados  # noqa: E402
+from raspador import navegador  # noqa: E402
+
+
+def cfg_http() -> dict:
+    """Config com o LinkedIn em modo HTTP (os testes simulam respostas; nunca abrem o navegador)."""
+    cfg = config.carregar()
+    cfg["fontes"]["linkedin"]["modo"] = "http"
+    return cfg
+
+
+_abrir_original = navegador.abrir
+
+
+def _proibido(*a, **k):
+    raise AssertionError("os testes nao podem abrir o navegador real (use modo http ou uma pagina falsa)")
+
+
+def bloquear_navegador():
+    navegador.abrir = _proibido
+
+
+def liberar_navegador():
+    navegador.abrir = _abrir_original
+
+
+def setUpModule():
+    bloquear_navegador()
+
+
+def tearDownModule():
+    liberar_navegador()
 
 
 class Resp:
@@ -183,7 +214,7 @@ class TestAnalytics(BancoTemp):
 # --------------------------------------------------------------------------- LinkedIn / Programathor
 class TestLinkedIn(unittest.TestCase):
     def test_429_para_na_hora_sem_retry_e_sem_cabecalhos_falsos(self):
-        cfg = config.carregar()
+        cfg = cfg_http()
         with LinkedIn(cfg, print, threading.Event()) as li:
             sessao = SessaoFalsa(Resp(429, headers={"Retry-After": "120"}))
             li.s = sessao

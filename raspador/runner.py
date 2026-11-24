@@ -173,7 +173,8 @@ def _executar(fontes, termos, dias, manter_aberto) -> list[dict]:
                 _log(f"[{cls.ROTULO}] falhou: {erro}")
             if not erro and not PARAR.is_set():
                 banco.retomar(con, nome)  # terminou sem bloqueio: zera o backoff
-            alerta = None if (erro or PARAR.is_set()) else _alertas(lista, lidas, vazias, desc_tot, desc_vazias, avisos)
+            alerta = None if (erro or PARAR.is_set()) else _alertas(lista, lidas, vazias if getattr(cls, "ALERTAR_BUSCAS_VAZIAS", True) else 0,
+                                                                                 desc_tot, desc_vazias, avisos)
             if alerta:
                 _log(f"[{cls.ROTULO}] ALERTA: {alerta}")
             con.execute("UPDATE execucoes SET fim=?, lidas=?, novas=?, relevantes=?, erro=?, alerta=?, desc_vazias=? WHERE id=?",

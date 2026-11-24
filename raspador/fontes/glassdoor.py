@@ -6,22 +6,14 @@ Descoberto a partir do HAR:
   - descricao: /job-listing/api/job-details?jobListingId=<id>&pageTypeEnum=SERP&queryString=/&countryId=36
 """
 import json
-import os
 import re
-import socket
-import subprocess
 import time
 
-from playwright.sync_api import sync_playwright
-
-from ..config import PERFIL_EDGE
+from .. import navegador
 from ..texto import html_para_texto, norm, slug
 
 PREFIXO = "trabalho-remoto-brasil-"
 LOC_REMOTO = 12226
-PORTA = 9223
-EDGE = next((p for p in (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-                         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe") if os.path.exists(p)), "msedge")
 
 
 def url_busca(termo: str) -> str:
@@ -76,40 +68,11 @@ class Glassdoor:
 
     # --- ciclo de vida -------------------------------------------------
     def __enter__(self):
-        self.pw = sync_playwright().start()
-        self.br, self.ctx = self._conectar()
-        self.page = self.ctx.pages[0] if self.ctx.pages else self.ctx.new_page()
+        self.pw, self.br, self.ctx, self.page = navegador.abrir()
         return self
 
     def __exit__(self, *exc):
-        try:
-            if self.manter:
-                self.br.close()  # so desconecta; o Edge continua aberto
-            else:
-                try:  # fecha so o Edge do raspador (porta 9223 / perfil_edge)
-                    self.ctx.new_cdp_session(self.page).send("Browser.close")
-                except Exception:
-                    pass
-                self.br.close()
-        except Exception:
-            pass
-        finally:
-            self.pw.stop()
-
-    def _conectar(self):
-        def aberta():
-            with socket.socket() as s:
-                s.settimeout(0.5)
-                return s.connect_ex(("127.0.0.1", PORTA)) == 0
-        if not aberta():
-            subprocess.Popen([EDGE, f"--remote-debugging-port={PORTA}", f"--user-data-dir={PERFIL_EDGE}",
-                              "--no-first-run", "--lang=pt-BR", "about:blank"])
-            for _ in range(40):
-                if aberta():
-                    break
-                time.sleep(0.5)
-        br = self.pw.chromium.connect_over_cdp(f"http://127.0.0.1:{PORTA}")
-        return br, br.contexts[0]
+        navegador.fechar(self.pw, self.br, self.ctx, self.page, self.manter)
 
     # --- navegacao -----------------------------------------------------
     def _bloqueado(self) -> bool:

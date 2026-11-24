@@ -44,6 +44,8 @@ def tipo_contrato(texto_visivel: str) -> str:
 class Programathor:
     NOME = "programathor"
     ROTULO = "Programathor"
+    # uma pagina de tecnologia sem vagas remotas (n8n, autoit...) e normal: nao e sinal de layout mudado
+    ALERTAR_BUSCAS_VAZIAS = False
 
     def __init__(self, cfg: dict, log, parar, **_):
         self.cfg, self.log, self.parar = cfg, log, parar

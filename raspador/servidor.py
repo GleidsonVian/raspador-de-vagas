@@ -202,6 +202,12 @@ def limpar_pausa(fonte: str):
     return {"ok": True}
 
 
+def _msg_erro(erro: str) -> str:
+    """O erro gravado na execucao termina com '- fonte em pausa ate HH:MM'. Se a pausa ja acabou, isso engana."""
+    base, sep, _ = erro.partition(" - fonte em pausa ate")
+    return base + " (a pausa já terminou; tenta de novo na próxima execução)" if sep else erro
+
+
 @app.get("/api/saude")
 def saude():
     """Estado de cada fonte: ok / alerta (suspeita de layout mudado) / erro / nunca rodou."""
@@ -227,7 +233,7 @@ def saude():
                 else:
                     estado, msg, quando = "nunca", "ainda nao rodou", None
             elif ult["erro"]:
-                estado, msg, quando = "erro", ult["erro"], ult["fim"]
+                estado, msg, quando = "erro", _msg_erro(ult["erro"]), ult["fim"]
             elif ult["alerta"]:
                 estado, msg, quando = "alerta", ult["alerta"], ult["fim"]
             else:
