@@ -324,5 +324,21 @@
   "backup": {
     "manter": 7
   },
-  "meu_nivel": "pleno"
+  "meu_nivel": "pleno",
+  "paralelo": true,
+  "simulador": {
+    "peso_habilidade": 3,
+    "cortes": [
+      40,
+      50,
+      60
+    ]
+  },
+  "sugestoes": {
+    "min_descartadas": 3,
+    "min_ocorrencias": 2,
+    "pct_minimo": 30,
+    "penalidade": 8
+  },
+  "lacunas_ignoradas": []
 }

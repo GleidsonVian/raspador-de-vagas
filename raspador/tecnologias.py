@@ -13,7 +13,8 @@ GRUPOS = {
 }
 
 _ROTULOS = {"uipath": "UiPath", "git": "Git", "javascript": "JavaScript", "typescript": "TypeScript", "n8n": "n8n",
-            "pyautogui": "PyAutoGUI", "fastapi": "FastAPI", "mysql": "MySQL", "sqlite": "SQLite", "ocr": "OCR"}
+            "pyautogui": "PyAutoGUI", "fastapi": "FastAPI", "mysql": "MySQL", "sqlite": "SQLite", "ocr": "OCR",
+            "go": "Go", "power bi": "Power BI", "totvs": "TOTVS"}
 
 
 def rotulo(termo: str) -> str:

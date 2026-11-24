@@ -72,6 +72,15 @@ Ajuste facilmente termos de busca específicos para cada plataforma, idade máxi
 - 📊 **Lacunas do Mercado** (aba *Estatísticas*):
   - Mostra as tecnologias que as vagas relevantes pedem e que **você ainda não tem** (um guia do que estudar), com a contagem de vagas em que são *obrigatórias* e em que são só *diferencial*, e quais já descontam do seu match.
   - Mostra também os seus pontos fortes mais pedidos. Grafias equivalentes (GCP / Google Cloud, .NET / C#) contam como uma tecnologia só.
+- 🔮 **Simulador "e se eu aprendesse...?"** (aba *Estatísticas*):
+  - Você marca uma ou mais tecnologias que ainda não tem (UiPath, Power Platform, GCP...) e o painel recalcula o match das vagas relevantes **em memória**: quantas melhoram, o ganho médio, quantas passam de 40%, 50% e 60% e quem mais sobe no ranking. Nada é gravado.
+  - É uma estimativa com o cálculo atual: a tecnologia passa a contar como habilidade sua (`simulador.peso_habilidade`, padrão 3) e perde o desconto que tinha.
+- 💡 **Sugestões de lacunas pelo que você descarta**:
+  - Cruza as vagas que você marcou como *Descartado* com as que marcou como *Interessado*/*Candidatado*: uma tecnologia que aparece muito nas descartadas e pouco nas que você curte vira sugestão, e **um clique** a adiciona às lacunas (desconto editável) e recalcula os matches. "Ignorar" guarda a recusa em `lacunas_ignoradas`. Os critérios ficam em `sugestoes` no `config.json`.
+  - Mostra também o contrário, só como informação: **descontos que o seu próprio comportamento contradiz**, isto é, ferramentas que descontam no match mas aparecem em boa parte das vagas que você curtiu.
+- ⚡ **Fontes em paralelo**:
+  - As fontes que usam o Edge (Glassdoor e LinkedIn) rodam **uma depois da outra**, porque dividem a mesma janela e o mesmo perfil. As fontes HTTP (Gupy e Programathor) rodam **em paralelo** com elas e entre si, cada uma com a sua conexão com o banco. Medido: Gupy + Programathor levaram 85 s juntas, contra 137 s em sequência.
+  - O painel mostra todas as fontes ativas ao mesmo tempo. `"paralelo": false` no `config.json` volta tudo para a sequência (depuração).
 - 💾 **Backup Automático do Banco**:
   - Uma cópia por dia em `backups/` (ao abrir o painel e antes de cada busca ou "Reavaliar"), guardando as 7 mais recentes (`backup.manter` no `config.json`).
   - Usa a API de backup do SQLite (consistente mesmo com uma busca gravando) e confere a cópia (integridade e contagem de vagas) antes de guardá-la. Botão **"Fazer backup agora"** em *Configurações*. Para restaurar, feche o painel e copie o arquivo por cima de `vagas.db`.
@@ -181,6 +190,8 @@ raspador-de-vagas/
     ├── checklist.py         # Checklist por vaga (o que tem, o que falta, o que destacar)
     ├── tecnologias.py       # Nomes e agrupamento de sinônimos (GCP / Google Cloud...)
     ├── navegador.py         # Edge real via CDP (perfil próprio), compartilhado por Glassdoor e LinkedIn
+    ├── simulador.py         # "E se eu aprendesse X?": recalcula o match com o perfil alterado
+    ├── sugestoes.py         # Sugestões de lacunas pelos descartes e descontos contradizidos
     ├── trava.py             # Trava entre processos (arquivo raspador.lock + checagem de processo vivo no Windows)
     ├── fontes/              # Módulos independentes de scraping
     │   ├── glassdoor.py
@@ -201,7 +212,7 @@ Testes de regressão offline (sem acessar nenhum site; usam banco temporário):
 python -m unittest discover -s tests -v
 ```
 
-Cobrem o verificador de vagas (frase no rodapé não conta, respeita pausa e 429), a deduplicação, a extração de contrato, o `reavaliar`, o cálculo de match com pouca evidência, as estatísticas e as lacunas do mercado, o backup (cópia válida, rodízio, nunca na pasta de outro banco), o LinkedIn/Programathor (429 sem retry), o LinkedIn em modo navegador (com uma página falsa: login exigido, verificação resolvida ou não, descrição) e a ausência de `onclick` inline com dados de terceiros na tela. **Os testes nunca abrem o navegador real**: uma trava derruba qualquer teste que tente.
+Cobrem o verificador de vagas (frase no rodapé não conta, respeita pausa e 429), a deduplicação, a extração de contrato, o `reavaliar`, o cálculo de match com pouca evidência, as estatísticas e as lacunas do mercado, o backup (cópia válida, rodízio, nunca na pasta de outro banco), o LinkedIn/Programathor (429 sem retry), o LinkedIn em modo navegador (com uma página falsa: login exigido, verificação resolvida ou não, descrição) o simulador e as sugestões de lacunas, as faixas em paralelo (com uma **prova por barreira**: as fontes esperam umas pelas outras, e a contraprova com o paralelismo desligado tem que quebrar) e a ausência de `onclick` inline com dados de terceiros na tela. **Os testes nunca abrem o navegador real** (uma trava derruba qualquer teste que tente) e **nunca escrevem no seu `config.json`** (o módulo de testes confere que o arquivo ficou idêntico).
 
 **Integração contínua:** o workflow `.github/workflows/tests.yml` roda a mesma suíte a cada push na `main` e em pull requests, em Windows, com Python 3.10 e 3.13. Os testes não acessam sites nem dependem do seu `vagas.db`.
 

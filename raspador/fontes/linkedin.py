@@ -47,6 +47,10 @@ class LinkedIn:
     NOME = "linkedin"
     ROTULO = "LinkedIn"
 
+    @staticmethod
+    def usa_navegador(cfg: dict) -> bool:
+        return cfg.get("fontes", {}).get("linkedin", {}).get("modo", "navegador") == "navegador"
+
     def __init__(self, cfg: dict, log, parar, manter_aberto: bool = False, **_):
         self.cfg, self.log, self.parar, self.manter = cfg, log, parar, manter_aberto
         fc = cfg.get("fontes", {}).get("linkedin", {})

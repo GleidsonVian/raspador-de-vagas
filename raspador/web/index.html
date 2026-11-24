@@ -129,6 +129,14 @@ tr.check td{background:var(--bg)}
 .checklist .item{margin:3px 0}.checklist .destaque{margin-left:8px;color:var(--txt);font-size:13px}
 .checklist button{margin-top:8px}
 .checklist a{color:var(--pri)}
+.sim-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.sim-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:999px;padding:3px 11px;font-size:13px;cursor:pointer;background:var(--card)}
+.sim-chip:has(input:checked){border-color:var(--pri);background:color-mix(in srgb,var(--pri) 12%,transparent)}
+.sim-res{margin-top:14px}.sim-resumo{font-weight:650;margin:0 0 8px}
+.sim-tab{border-collapse:collapse;margin:6px 0 12px;width:auto}.sim-tab th,.sim-tab td{padding:4px 18px 4px 0;font-size:13px;text-align:left;border:0}
+.sim-mais{color:var(--ok);font-weight:700}.mov{margin:5px 0;font-size:13px}.mov-b{min-width:0;margin-right:4px}
+.sug{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--bd)}
+.sug .sug-d{color:var(--mut);font-size:12px;flex:1;min-width:220px}.sug-pen{width:62px}
 </style>
 </head>
 <body>
@@ -231,6 +239,14 @@ tr.check td{background:var(--bg)}
         <h3>💪 Seus pontos fortes mais pedidos</h3>
         <p class="stat-nota">Habilidades suas que mais aparecem nas vagas relevantes.</p>
         <div id="statFortes"></div>
+      </div>
+      <div class="stat-card" style="grid-column: 1 / -1">
+        <h3>🔮 E se eu aprendesse...?</h3>
+        <div id="statSimulador"></div>
+      </div>
+      <div class="stat-card" style="grid-column: 1 / -1">
+        <h3>💡 Sugestões de lacunas (pelo que você descarta)</h3>
+        <div id="statSugestoes"></div>
       </div>
       <div class="stat-card">
         <h3>🚀 Top Tecnologias Mais Demandadas</h3>
@@ -486,6 +502,64 @@ function montaChecklist(c,titulo,empresa,match){
   bt.onclick=async()=>{try{await navigator.clipboard.writeText(textoChecklist(c,titulo,empresa,match));toast("Resumo copiado")}catch{toast("Não foi possível copiar")}};
   box.append(bt);return box}
 
+/* simulador e sugestoes de lacunas: titulos e empresas (de terceiros) so entram via textContent */
+const corMatch=m=>m>=70?"b-alto":m>=45?"b-medio":"b-baixo";
+async function carregaSimulador(){
+  const box=$("#statSimulador");let o;
+  try{o=await api("/api/simulador/opcoes")}catch(e){return}
+  box.replaceChildren();
+  if(!o.opcoes.length){box.append(el("div","vazio","Nenhuma tecnologia faltando nas vagas relevantes atuais."));return}
+  box.append(el("p","stat-nota","Marque o que você aprenderia e veja quantas vagas melhoram. É uma estimativa com o cálculo atual do match: a tecnologia passa a contar como sua e perde o desconto."));
+  const lista=el("div","sim-chips");
+  o.opcoes.forEach(i=>{
+    const l=el("label","sim-chip"),c=document.createElement("input");c.type="checkbox";c.value=i.tech;
+    l.append(c,el("span",null,`${i.tech} · ${i.vagas} vaga${i.vagas>1?"s":""}${i.penalizada?" · descontada hoje":""}`));lista.append(l)});
+  const bt=el("button","pri","Simular"),res=el("div","sim-res");
+  bt.onclick=async()=>{
+    const sel=[...lista.querySelectorAll("input:checked")].map(i=>i.value);
+    if(!sel.length){toast("Escolha ao menos uma tecnologia");return}
+    bt.disabled=true;
+    try{desenhaSimulacao(res,await api("/api/simulador","POST",{tecnologias:sel}))}catch(e){toast(e.message)}finally{bt.disabled=false}};
+  box.append(lista,bt,res)}
+function desenhaSimulacao(res,r){
+  res.replaceChildren();
+  res.append(el("p","sim-resumo",`Aprendendo ${r.tecnologias.join(" + ")}: ${r.subiram} de ${r.total} vagas melhoram`+(r.subiram?`, em média +${r.ganho_medio} pontos (até +${r.ganho_maximo}).`:".")));
+  const t=document.createElement("table");t.className="sim-tab";
+  const cab=t.createTHead().insertRow();["Vagas com match de pelo menos","Hoje","Depois"].forEach(x=>cab.append(el("th",null,x)));
+  const corpo=t.createTBody();
+  r.cortes.forEach(c=>{const l=corpo.insertRow();[`${c.corte}%`,c.antes,c.depois].forEach((x,i)=>{const td=l.insertCell();td.textContent=x;if(i===2&&c.depois>c.antes)td.className="sim-mais"})});
+  res.append(t);
+  if(r.mudancas.length){
+    res.append(el("div","gt","Quem mais sobe"));
+    r.mudancas.forEach(m=>{const l=el("div","mov");
+      l.append(el("span","badge mov-b "+corMatch(m.depois),`${m.antes}% → ${m.depois}%`),el("span",null,` +${m.delta} · ${m.titulo} — ${m.empresa} (posição ${m.pos_antes}º → ${m.pos_depois}º)`));res.append(l)})}
+}
+async function carregaSugestoes(){
+  const box=$("#statSugestoes");let s;
+  try{s=await api("/api/sugestoes/lacunas")}catch(e){return}
+  box.replaceChildren();
+  if(!s.suficiente){box.append(el("div","vazio",`Marque pelo menos ${s.minimo} vagas como "Descartado" para eu sugerir lacunas (hoje: ${s.descartadas}).`));return}
+  box.append(el("p","stat-nota",`Com base em ${s.descartadas} vagas descartadas e ${s.positivas} em "Interessado" ou "Candidatado".`));
+  if(!s.sugestoes.length)box.append(el("div","vazio","Nenhuma tecnologia nova se destaca nas vagas que você descartou."));
+  s.sugestoes.forEach(i=>{
+    const l=el("div","sug");l.append(el("b",null,i.tech),el("span","sug-d",`em ${i.descartadas} de ${s.descartadas} descartadas (${i.pct_descartadas}%) · ${i.positivas} de ${s.positivas} das que você curtiu`));
+    const pen=document.createElement("input");pen.type="number";pen.min=1;pen.max=30;pen.value=i.pen_sugerida;pen.className="sug-pen";pen.title="desconto no match";
+    const add=el("button","mini pri","Adicionar às lacunas"),ign=el("button","mini","Ignorar");
+    add.onclick=async()=>{add.disabled=true;try{const r=await api("/api/lacunas","POST",{tech:i.tech,pen:+pen.value});
+      toast(`"${r.termo}" entrou nas lacunas (−${r.pen})`+(r.reavaliadas!=null?` e ${r.reavaliadas} vagas foram reavaliadas`:`; use "Reavaliar vagas salvas" depois da busca`));recarrega();carregaSugestoes()}catch(e){toast(e.message);add.disabled=false}};
+    ign.onclick=async()=>{try{await api("/api/lacunas/ignorar","POST",{tech:i.tech});carregaSugestoes()}catch(e){toast(e.message)}};
+    l.append(pen,add,ign);box.append(l)});
+  if(s.revisar.length){
+    box.append(el("div","gt","Descontos que o seu próprio comportamento contradiz"));
+    box.append(el("p","stat-nota","Estas tecnologias descontam no match, mas aparecem em boa parte das vagas que você curtiu ou candidatou. O desconto pode estar escondendo vagas que você quer."));
+    s.revisar.forEach(i=>{
+      const l=el("div","sug");l.append(el("b",null,i.tech),el("span","sug-d",`em ${i.positivas} de ${s.positivas} das que você curtiu (${i.pct_positivas}%) · ${i.descartadas} de ${s.descartadas} das descartadas (${i.pct_descartadas}%)`));
+      const sim=el("button","mini","Simular");
+      sim.onclick=()=>{document.querySelectorAll("#statSimulador .sim-chip input").forEach(c=>c.checked=(c.value===i.tech));
+        const b=document.querySelector("#statSimulador button.pri");if(b){b.scrollIntoView({block:"center"});b.click()}};
+      l.append(sim);box.append(l)})}
+}
+
 function montaDescricaoColorida(desc, motivo){
   if(!desc) return el("div", null, "(sem descrição coletada)");
   let h = esc(desc);
@@ -571,6 +645,7 @@ async function carregaStats(){
     };
     barras("#statLacunas", data.lacunas_mercado||[], "var(--bad)", "Nenhuma lacuna encontrada nas vagas atuais.");
     barras("#statFortes", data.pontos_fortes||[], "var(--ok)", "Sem dados ainda.");
+    carregaSimulador();carregaSugestoes();
 
     const maxTech = Math.max(...data.top_tecnologias.map(t=>t.count), 1);
     $("#statTechs").innerHTML = data.top_tecnologias.map(t=>`
@@ -690,8 +765,8 @@ async function poll(){
   $("#btnParar").style.display=e.rodando?"":"none";$("#btnRodar").disabled=e.rodando;
   $("#prog").classList.toggle("on",e.rodando||e.log.length>0&&rodandoAntes);
   if(e.rodando||rodandoAntes){
-    const pct=e.total?Math.round(100*e.feito/e.total):0;
-    $("#progTxt").textContent=e.rodando?`${e.fonte||"…"} · ${e.termo||""} — ${e.feito}/${e.total} termos · ${e.relevantes} relevantes novas`:"Execução concluída";
+    const pct=e.total?Math.round(100*e.feito/e.total):0;const ativas=Object.values(e.ativas||{}).map(a=>`${a.rotulo}${a.termo?": "+a.termo:""}`).join("  ·  ");
+    $("#progTxt").textContent=e.rodando?`${ativas||"…"} — ${e.feito}/${e.total} termos · ${e.relevantes} relevantes novas`:"Execução concluída";
     $("#progBar").style.width=(e.rodando?pct:100)+"%";
     const L=$("#log"),fim=L.scrollTop+L.clientHeight>=L.scrollHeight-8;L.textContent=e.log.join("\n");if(fim)L.scrollTop=L.scrollHeight;
   }

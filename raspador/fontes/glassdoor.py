@@ -61,6 +61,10 @@ class Glassdoor:
     NOME = "glassdoor"
     ROTULO = "Glassdoor"
 
+    @staticmethod
+    def usa_navegador(cfg: dict) -> bool:
+        return True  # divide o Edge/perfil com o LinkedIn: rodam um depois do outro
+
     def __init__(self, cfg: dict, log, parar, manter_aberto: bool = False):
         self.cfg, self.log, self.parar, self.manter = cfg, log, parar, manter_aberto
         self.max_paginas = cfg["fontes"]["glassdoor"].get("max_paginas", 3)

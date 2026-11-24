@@ -29,7 +29,7 @@ TECH_MAP = [
 ]
 
 
-def _mercado(linhas, cfg: dict) -> dict:
+def _mercado(linhas, cfg: dict, lim_lacunas: int = 10, lim_fortes: int = 8) -> dict:
     """O que as vagas relevantes pedem: (a) tecnologias que voce AINDA NAO tem e (b) seus pontos fortes mais pedidos.
     Conta por vaga, separando 'obrigatorio' (requisitos/responsabilidades) de 'diferencial'; o que esta em
     beneficios/sobre a empresa nao conta (mesma regra do match)."""
@@ -60,7 +60,12 @@ def _mercado(linhas, cfg: dict) -> dict:
         itens.sort(key=lambda i: (-i["vagas"], -i["obrigatorio"], i["tech"]))
         return itens[:limite]
 
-    return {"lacunas_mercado": montar(grupos_fora, 10), "pontos_fortes": montar(grupos_perfil, 8)}
+    return {"lacunas_mercado": montar(grupos_fora, lim_lacunas), "pontos_fortes": montar(grupos_perfil, lim_fortes)}
+
+
+def mercado(linhas, cfg: dict, lim_lacunas: int = 10, lim_fortes: int = 8) -> dict:
+    """Versao publica: o que o mercado pede e voce nao tem / seus pontos fortes (usada pelo simulador)."""
+    return _mercado(linhas, cfg, lim_lacunas, lim_fortes)
 
 
 def _parse_salario_medio(s: str) -> float | None:

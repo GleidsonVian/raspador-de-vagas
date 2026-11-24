@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from . import analytics, backup, banco, checklist, config, dedup, runner, trava, verificador
+from . import analytics, backup, banco, checklist, config, dedup, runner, simulador, sugestoes, trava, verificador
 from .fontes import FONTES
 
 PORTA = int(os.environ.get("RASPADOR_PORTA", 8765))
@@ -106,6 +106,93 @@ def checklist_da_vaga(vid: str):
     if not r:
         raise HTTPException(404, "vaga nao encontrada")
     return checklist.montar(config.carregar(), dict(r))
+
+
+def _relevantes(con, cfg: dict) -> list[dict]:
+    """Vagas relevantes, abertas e unicas (as mesmas das estatisticas)."""
+    return [dict(r) for r in con.execute(
+        "SELECT id,titulo,empresa,fonte,link,descricao,match FROM vagas WHERE excluida=0 AND encerrada=0 "
+        "AND (duplicada_de IS NULL OR duplicada_de='') AND score>=? AND COALESCE(descricao,'')!=''", (cfg["pontuacao_minima"],))]
+
+
+@app.get("/api/simulador/opcoes")
+def simulador_opcoes():
+    cfg = config.carregar()
+    con = banco.conectar()
+    try:
+        linhas = _relevantes(con, cfg)
+    finally:
+        con.close()
+    return {"opcoes": simulador.opcoes(cfg, linhas), "total": len(linhas)}
+
+
+class SimularIn(BaseModel):
+    tecnologias: list[str]
+
+
+@app.post("/api/simulador")
+def simular(corpo: SimularIn):
+    """E se eu aprendesse X? Nada e gravado: so recalcula o match em memoria."""
+    cfg = config.carregar()
+    con = banco.conectar()
+    try:
+        linhas = _relevantes(con, cfg)
+    finally:
+        con.close()
+    try:
+        return simulador.simular(cfg, linhas, corpo.tecnologias[:10])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+def _linhas_status(con, cfg: dict) -> list[dict]:
+    return [dict(r) for r in con.execute(
+        "SELECT status, descricao FROM vagas WHERE excluida=0 AND score>=? AND COALESCE(descricao,'')!='' "
+        "AND (duplicada_de IS NULL OR duplicada_de='')", (cfg["pontuacao_minima"],))]
+
+
+@app.get("/api/sugestoes/lacunas")
+def sugestoes_lacunas():
+    cfg = config.carregar()
+    con = banco.conectar()
+    try:
+        return sugestoes.sugerir(cfg, _linhas_status(con, cfg))
+    finally:
+        con.close()
+
+
+class LacunaIn(BaseModel):
+    tech: str
+    pen: int = 8
+
+
+@app.post("/api/lacunas")
+def adicionar_lacuna(corpo: LacunaIn):
+    """Adiciona a tecnologia as lacunas (desconto no match) e recalcula os matches se nao houver busca em andamento."""
+    cfg = config.carregar()
+    con = banco.conectar()
+    try:
+        novo, termo, pen = sugestoes.aplicar(cfg, corpo.tech, corpo.pen, _linhas_status(con, cfg))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        con.close()
+    config.salvar(novo)
+    reavaliadas = None if (runner.ESTADO["rodando"] or trava.ocupado()) else runner.reavaliar()
+    return {"termo": termo, "pen": pen, "reavaliadas": reavaliadas}
+
+
+class IgnorarIn(BaseModel):
+    tech: str
+
+
+@app.post("/api/lacunas/ignorar")
+def ignorar_lacuna(corpo: IgnorarIn):
+    try:
+        config.salvar(sugestoes.ignorar(config.carregar(), corpo.tech))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
 
 
 class StatusIn(BaseModel):
